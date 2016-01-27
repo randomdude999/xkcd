@@ -64,15 +64,6 @@ random_url = base_url + "/random/comic"  # Random page URL
 api_url = base_url + "/api-0/jsonp/comic/%s"  # Comic metadata URL
 explainxkcd_url = "http://www.explainxkcd.com/%s"
 
-# runtime variables (DO NOT TOUCH)
-
-version = "v0.1"
-isrunning = True
-seen_comics = []
-with urllib.request.urlopen(api_url % "") as response_:
-    cur_max_comic = json.loads(response_.read())['num']
-sel_comic = cur_max_comic
-
 
 #  #############################
 #  # Command definitions       #
@@ -119,8 +110,13 @@ def command_display(*arguments):
             comic = int(arguments[0])
         except ValueError:
             comic = sel_comic
+        if "NO_USE_LESS" in arguments:
+            use_less_override = True
+        else:
+            use_less_override = False
     else:
         comic = sel_comic
+        use_less_override = False
     if "img" in arguments:
         if not os.path.exists(tmpimg_location + "%s.png" % sel_comic):
             # If we don't already have the image:
@@ -144,7 +140,7 @@ def command_display(*arguments):
                 return "Something might've gone wrong (response code: %s)" % \
                        response.getcode()
             content = response.read()
-            data = json.loads(content)
+            data = json.loads(content.decode())
         release_date = (data['year'], data['month'], data['day'])
         transcript = data['transcript']
         if len(transcript) == 0:
@@ -152,7 +148,7 @@ def command_display(*arguments):
                          data['alt'] + "\""
         output = data['title'] + "\nRelease date: %s-%s-%s" % release_date + \
             "\n" + transcript
-        if use_less:
+        if use_less and not use_less_override:
             proc = Popen("less", shell=True, stdin=PIPE)
             proc.communicate(output.encode())
         else:
@@ -163,8 +159,13 @@ def command_display(*arguments):
 def command_explain(*arguments):
     if len(arguments) < 1:
         comic = sel_comic
+        use_less_override = False
     else:
         comic = arguments[0]
+        if "NO_USE_LESS" in arguments:
+            use_less_override = True
+        else:
+            use_less_override = False
     location = explainxkcd_url % comic
     req = urllib.request.Request(location)
     req.add_header("User-Agent", "xkcd/0.1 (by randomdude999 <just.so.you.can."
@@ -175,7 +176,7 @@ def command_explain(*arguments):
     content = proc.communicate(content)[0]
     # *WARNING: ABOMINATION INCOMING* #
     content = "".join(content.decode().split("[edit] ")[1:-1])
-    if use_less:
+    if use_less and not use_less_override:
         proc = Popen("less", shell=True, stdin=PIPE)
         proc.communicate(content.encode())
     else:
@@ -185,13 +186,18 @@ def command_explain(*arguments):
 
 def command_save(*arguments):
     if len(arguments) < 1:
-        location = save_location + str(sel_comic) + ".png"
+        comic = sel_comic
+        location = save_location + str(comic) + ".png"
     else:
-        location = arguments[0]
-    output = "Saving comic %s to location %s" % (sel_comic, location) + "\n"
-    if not os.path.exists(tmpimg_location + "%s.png" % sel_comic):
-        with urllib.request.urlopen(api_url % sel_comic) as response:
-            comic_data = json.loads(response.read())
+        comic = int(arguments[0])
+        if len(arguments) > 1:
+            location = " ".join(arguments[1:])
+        else:
+            location = save_location + str(comic) + ".png"
+    output = "Saving comic %s to location %s" % (comic, location) + "\n"
+    if not os.path.exists(tmpimg_location + "%s.png" % comic):
+        with urllib.request.urlopen(api_url % comic) as response:
+            comic_data = json.loads(response.read().decode())
         img_source = comic_data['img']
         with urllib.request.urlopen(img_source) as response:
             if response.getcode() == 404:
@@ -200,11 +206,11 @@ def command_save(*arguments):
                 img_data = response.read()
                 if not os.path.isdir(tmpimg_location):
                     os.mkdir(tmpimg_location)
-                fd = open(tmpimg_location + "%s.png" % sel_comic, 'wb')
+                fd = open(tmpimg_location + "%s.png" % comic, 'wb')
                 fd.write(img_data)
                 fd.close()
     try:
-        shutil.copy(tmpimg_location + "%s.png" % sel_comic, location)
+        shutil.copy(tmpimg_location + "%s.png" % comic, location)
     except PermissionError as err:
         return err
     return output
@@ -396,26 +402,36 @@ commands_help = {
 #  #############################
 #  # Main code                 #
 #  #############################
-sys.stdout.write("\x1b]0;xkcd\x07")
-print("A command line xkcd client (%s)" % version)
-print("By randomdude999")
-print("Type `help' or `license' for more info")
+def main():
+    sys.stdout.write("\x1b]0;xkcd\x07")
+    print("A command line xkcd client (%s)" % version)
+    print("By randomdude999")
+    print("Type `help' or `license' for more info")
 
-while isrunning:
-    try:
-        inp = input(prompt % sel_comic)
-    except (KeyboardInterrupt, EOFError):
-        print()
-        break
-    cmds = inp.split(";")
-    for cmd in cmds:
-        cmd = cmd.strip()
-        args = cmd.split(" ")
-        cmd = args.pop(0)
-        if cmd in commands:
-            print(commands[cmd](*args))
-        else:
-            print("Unknown command")
+    while isrunning:
+        try:
+            inp = input(prompt % sel_comic)
+        except (KeyboardInterrupt, EOFError):
+            print()
+            break
+        cmds = inp.split(";")
+        for cmd in cmds:
+            cmd = cmd.strip()
+            args = cmd.split(" ")
+            cmd = args.pop(0)
+            if cmd in commands:
+                print(commands[cmd](*args))
+            else:
+                print("Unknown command")
 
-if os.path.exists(tmpimg_location):
-    shutil.rmtree(tmpimg_location)
+    if os.path.exists(tmpimg_location):
+        shutil.rmtree(tmpimg_location)
+
+if __name__ == "__main__":
+    version = "v0.1"
+    isrunning = True
+    seen_comics = []
+    with urllib.request.urlopen(api_url % "") as response_:
+        cur_max_comic = json.loads(response_.read())['num']
+    sel_comic = cur_max_comic
+    main()
