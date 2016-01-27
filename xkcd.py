@@ -5,7 +5,7 @@
 # simplejson is recommended (from pip), but standard json will do
 # readline is recommended, but not required
 # Note: settings are configured for linux, on Windows you might have to change
-# some settings (lines 48-51)
+# some settings (lines 53-59)
 
 # Copyright © 2016 randomdude999
 # This program is free software: you can redistribute it and/or modify
@@ -49,11 +49,10 @@ except ImportError:
 
 # Main config
 
-version = "v0.1"
 prompt = "xkcd [%s]> "  # the %s is current comic number
 display_cmd = "display %s"  # command used to display images, %s is file path
 html_renderer = "w3m -dump -T text/html -O ascii"  # html to text renderer
-tmpimg_location = "/tmp/xkcd/"  # remember trailing slash
+tmpimg_location = "/tmp/xkcd/"  # remember trailing (back)slash
 save_location = os.getenv("HOME") + "/Pictures/"  # Default save location
 # Disable if you are using windows / don't know what is the program "less"
 use_less = True
@@ -67,6 +66,7 @@ explainxkcd_url = "http://www.explainxkcd.com/%s"
 
 # runtime variables (DO NOT TOUCH)
 
+version = "v0.1"
 isrunning = True
 seen_comics = []
 with urllib.request.urlopen(api_url % "") as response_:
@@ -98,19 +98,19 @@ def command_random(*arguments):
         uniques = True
     global sel_comic
     if uniques:
-        avail = list(range(1, cur_max_comic))  # List [1, 2, 3, ... last_comic]
+        avail = list(range(1, cur_max_comic))
         for x in seen_comics:
             avail.remove(x)
-        avail.remove(404)  # So much trouble...
-        sel = random.choice(avail)  # Magic!
+        avail.remove(404)
+        sel = random.choice(avail)
         seen_comics.append(sel)
     else:
         sel = random.randint(1, cur_max_comic)
     sel_comic = sel
     if display_comic:
-        command_display()
+        return command_display()
     if display_comic_image:
-        command_display('img')
+        return command_display('img')
 
 
 def command_display(*arguments):
@@ -126,27 +126,25 @@ def command_display(*arguments):
             # If we don't already have the image:
             with urllib.request.urlopen(api_url % comic) as response:
                 comic_data = json.loads(response.read())
-            img_source = comic_data['img']  # get image path
+            img_source = comic_data['img']
             with urllib.request.urlopen(img_source) as response:
                 if response.getcode() == 404:
                     return "No image for comic found (maybe it's interactive?)"
                 else:
                     img_data = response.read()
-                    # Does our temp dir exist?
                     if not os.path.isdir(tmpimg_location):
-                        os.mkdir(tmpimg_location)  # If not, we create it
-                    # We open it for writing
+                        os.mkdir(tmpimg_location)
                     fd = open(tmpimg_location + "%s.png" % sel_comic, 'wb')
-                    fd.write(img_data)  # We write it
-                    fd.close()  # And we close it, just in case
-        # Then we display the image
+                    fd.write(img_data)
+                    fd.close()
         os.system(display_cmd % (tmpimg_location + "%s.png" % sel_comic))
     else:
         with urllib.request.urlopen(api_url % comic) as response:
+            if response.getcode() != 200:
+                return "Something might've gone wrong (response code: %s)" % \
+                       response.getcode()
             content = response.read()
-            if content == "something went wrong":
-                return "Error"
-            data = json.loads(response.read())
+            data = json.loads(content)
         release_date = (data['year'], data['month'], data['day'])
         transcript = data['transcript']
         if len(transcript) == 0:
@@ -159,6 +157,7 @@ def command_display(*arguments):
             proc.communicate(output.encode())
         else:
             return output
+    return ""
 
 
 def command_explain(*arguments):
@@ -181,6 +180,7 @@ def command_explain(*arguments):
         proc.communicate(content.encode())
     else:
         return content
+    return ""
 
 
 def command_save(*arguments):
@@ -189,29 +189,24 @@ def command_save(*arguments):
     else:
         location = arguments[0]
     output = "Saving comic %s to location %s" % (sel_comic, location) + "\n"
-    # If we don't have a cached version, get one
     if not os.path.exists(tmpimg_location + "%s.png" % sel_comic):
-        # See previous (display-img) function
         with urllib.request.urlopen(api_url % sel_comic) as response:
             comic_data = json.loads(response.read())
-        img_source = comic_data['img']  # get image path
+        img_source = comic_data['img']
         with urllib.request.urlopen(img_source) as response:
             if response.getcode() == 404:
                 return "No image for comic found (maybe it's interactive?)"
             else:
                 img_data = response.read()
-                # Does our temp dir exist?
                 if not os.path.isdir(tmpimg_location):
-                    os.mkdir(tmpimg_location)  # If not, we create it
-                # We open it for writing
+                    os.mkdir(tmpimg_location)
                 fd = open(tmpimg_location + "%s.png" % sel_comic, 'wb')
-                fd.write(img_data)  # We write it
-                fd.close()  # And we close it, just in case
+                fd.write(img_data)
+                fd.close()
     try:
-        # Try to copy the image to the given file
         shutil.copy(tmpimg_location + "%s.png" % sel_comic, location)
-    except PermissionError as err:  # We're not allowed to?
-        return err  # Tell the user
+    except PermissionError as err:
+        return err
     return output
 
 
@@ -222,10 +217,11 @@ def command_next(*arguments):
     else:
         amount = int(arguments[0])
     sel_comic += amount
-    if sel_comic > cur_max_comic:  # That comic does not exist
-        sel_comic = cur_max_comic  # But let's give them the last one
-    elif sel_comic == 404:  # That one also does not exist
-        sel_comic = 405  # So we skip it
+    if sel_comic > cur_max_comic:
+        sel_comic = cur_max_comic
+    elif sel_comic == 404:
+        sel_comic = 405
+    return ""
 
 
 def command_prev(*arguments):
@@ -235,10 +231,11 @@ def command_prev(*arguments):
     else:
         amount = int(arguments[0])
     sel_comic -= amount
-    if sel_comic < 1:  # We don't have negative comics (yet)
-        sel_comic = 1  # Give 'em the first one
-    elif sel_comic == 404:  # And the 404 again
-        sel_comic = 403  # Skip it
+    if sel_comic < 1:
+        sel_comic = 1
+    elif sel_comic == 404:
+        sel_comic = 403
+    return ""
 
 
 def command_first(*arguments):
@@ -246,7 +243,7 @@ def command_first(*arguments):
     output = ""
     if len(arguments) > 0:
         output += "Warning: Command does not accept arguments"
-    sel_comic = 1  # What part of this do you not understand?
+    sel_comic = 1
     return output
 
 
@@ -255,7 +252,7 @@ def command_last(*arguments):
     output = ""
     if len(arguments) > 0:
         output += "Warning: Command does not accept arguments"
-    sel_comic = cur_max_comic  # This is kind of like the previous one
+    sel_comic = cur_max_comic
     return output
 
 
@@ -265,13 +262,14 @@ def command_goto(*arguments):
         comic = cur_max_comic
     else:
         comic = int(arguments[0])
-    if comic < 1:  # no negative comics!
-        comic = 1  # so they get the 1st one
-    elif comic > cur_max_comic:  # That comic does not exist
-        comic = cur_max_comic  # but the last one does
-    elif comic == 404:  # Why does this easter egg cause so much trouble?
+    if comic < 1:
+        comic = 1
+    elif comic > cur_max_comic:
+        comic = cur_max_comic
+    elif comic == 404:
         return "404 Not Found"
     sel_comic = comic
+    return ""
 
 
 def command_update(*arguments):
@@ -282,12 +280,11 @@ def command_update(*arguments):
     with urllib.request.urlopen(api_url % "") as response:
         new_max_comic = json.loads(response.read())['num']
     if new_max_comic > cur_max_comic:
-        # The current comic is newer than the one we think is the latest one
-        if cur_max_comic + 1 == new_max_comic:  # there is exactly 1 new comic
+        if cur_max_comic + 1 == new_max_comic:
             output += "1 new comic!\n"
-        else:  # There is more than 1 comic
+        else:
             output += "%s new comics!\n" % (new_max_comic - cur_max_comic)
-        cur_max_comic = new_max_comic  # Update the latest comic
+        cur_max_comic = new_max_comic
     else:
         output += "No new comics."
     return output
@@ -324,7 +321,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
     return output
 
 
-commands = {  # Dict to store commands
+def command_help(*arguments):
+    if len(arguments) == 0:
+        return """
+Use `next', `prev', `first', `last', `goto' and `random' to select comics.
+Use `display' to show comics' transcriptions.
+Use `display img' to display images (requires imagemagick and a running X
+server).
+Use `explain' to open the explain xkcd page for that comic.
+Use `update' to check for new comics.
+Use `save' to save comics to disk.
+Use `quit' or exit to exit.
+Use `help [command]' to get help."""
+    else:
+        command = arguments[0]
+        if command in commands_help:
+            return commands_help[command]
+        elif command in commands:
+            return "Command exists, but has no documentation."
+        else:
+            return "Unknown command."
+
+commands = {
     "random": command_random,
     "display": command_display,
     "explain": command_explain,
@@ -338,7 +356,8 @@ commands = {  # Dict to store commands
     "save": command_save,
     "quit": command_exit,
     "exit": command_exit,
-    "license": command_license
+    "license": command_license,
+    "help": command_help
 }
 
 commands_help = {
@@ -374,30 +393,6 @@ commands_help = {
 }
 
 
-def command_help(*arguments):
-    if len(arguments) == 0:
-        return """
-Use `next', `prev', `first', `last', `goto' and `random' to select comics.
-Use `display' to show comics' transcriptions.
-Use `display img' to display images (requires imagemagick and a running X
-server).
-Use `explain' to open the explain xkcd page for that comic.
-Use `update' to check for new comics.
-Use `save' to save comics to disk.
-Use `quit' or exit to exit.
-Use `help [command]' to get help."""
-    else:
-        command = arguments[0]
-        if command in commands_help:
-            return commands_help[command]
-        elif command in commands:
-            return "Command exists, but has no documentation."
-        else:
-            return "Unknown command."
-
-commands["help"] = command_help
-
-
 #  #############################
 #  # Main code                 #
 #  #############################
@@ -408,21 +403,19 @@ print("Type `help' or `license' for more info")
 
 while isrunning:
     try:
-        inp = input(prompt % sel_comic)  # what do you want to do?
+        inp = input(prompt % sel_comic)
     except (KeyboardInterrupt, EOFError):
-        # Apparently you don't like the program's built-in exit commands
         print()
         break
-    cmds = inp.split(";")  # Much simpler than a regex
+    cmds = inp.split(";")
     for cmd in cmds:
-        cmd = cmd.strip()  # Whitespace can mess things up
+        cmd = cmd.strip()
         args = cmd.split(" ")
-        cmd = args.pop(0)  # Arguments != Command name
-        if cmd in commands:  # Hey, we found a matching command!
+        cmd = args.pop(0)
+        if cmd in commands:
             print(commands[cmd](*args))
-        else:  # We did not find a match
+        else:
             print("Unknown command")
 
 if os.path.exists(tmpimg_location):
-    # Don't forget to clean the temporaries, kids!
     shutil.rmtree(tmpimg_location)
