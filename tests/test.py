@@ -40,7 +40,7 @@ class TestCommandPrev(unittest.TestCase):
     def test_command_prev_1(self):
         xkcd.sel_comic = 667
         xkcd.command_prev()
-        self.assertEqual(xkcd.sel_comic,666)
+        self.assertEqual(xkcd.sel_comic, 666)
 
     def test_command_prev_many(self):
         xkcd.sel_comic = 676
