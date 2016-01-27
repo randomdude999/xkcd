@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # A command line xkcd client
-# Requires python and the requests module (available from pip)
+# Requires python
 # simplejson is recommended (from pip), but standard json will do
 # readline is recommended, but not required
 # Note: settings are configured for linux, on Windows you might have to change
@@ -21,6 +21,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+#  #############################
+#  # Imports                   #
+#  #############################
+
 import os
 import sys
 import shutil
@@ -37,13 +42,14 @@ except ImportError:
     # Well, you don't *have* to have readline, but it definitely helps!
     readline = None
 
-base_url = "http://c.xkcd.com"  # That weird API-like website (try browsing it!)
-random_url = base_url + "/random/comic"  # Random page URL
-api_url = base_url + "/api-0/jsonp/comic/%s"  # Comic metadata URL
-explainxkcd_url = "http://www.explainxkcd.com/%s"
-with urllib.request.urlopen(api_url % "") as response_:
-    cur_max_comic = json.loads(response_.read())['num']
-sel_comic = cur_max_comic
+
+#  #############################
+#  # Configuration             #
+#  #############################
+
+# Main config
+
+version = "v0.1"
 prompt = "xkcd [%s]> "  # the %s is current comic number
 display_cmd = "display %s"  # command used to display images, %s is file path
 html_renderer = "w3m -dump -T text/html -O ascii"  # html to text renderer
@@ -51,8 +57,26 @@ tmpimg_location = "/tmp/xkcd/"  # remember trailing slash
 save_location = os.getenv("HOME") + "/Pictures/"  # Default save location
 # Disable if you are using windows / don't know what is the program "less"
 use_less = True
-isrunning = True  # DO NOT TOUCH!!!
 
+# URLs
+
+base_url = "http://c.xkcd.com"  # That weird API-like website (try browsing it!)
+random_url = base_url + "/random/comic"  # Random page URL
+api_url = base_url + "/api-0/jsonp/comic/%s"  # Comic metadata URL
+explainxkcd_url = "http://www.explainxkcd.com/%s"
+
+# runtime variables (DO NOT TOUCH)
+
+isrunning = True
+seen_comics = []
+with urllib.request.urlopen(api_url % "") as response_:
+    cur_max_comic = json.loads(response_.read())['num']
+sel_comic = cur_max_comic
+
+
+#  #############################
+#  # Command definitions       #
+#  #############################
 
 def command_random(*arguments):
     if len(arguments) > 0:
@@ -64,14 +88,25 @@ def command_random(*arguments):
             display_comic_image = True
         else:
             display_comic_image = False
+        if "-f" in arguments or "--fast" in arguments:
+            uniques = False
+        else:
+            uniques = True
     else:
         display_comic = False
         display_comic_image = False
+        uniques = True
     global sel_comic
-    a = list(range(1, cur_max_comic))  # List [1, 2, 3, ... last_comic]
-    a.remove(404)  # So much trouble...
-    b = random.choice(a)  # Magic!
-    sel_comic = b
+    if uniques:
+        avail = list(range(1, cur_max_comic))  # List [1, 2, 3, ... last_comic]
+        for x in seen_comics:
+            avail.remove(x)
+        avail.remove(404)  # So much trouble...
+        sel = random.choice(avail)  # Magic!
+        seen_comics.append(sel)
+    else:
+        sel = random.randint(1, cur_max_comic)
+    sel_comic = sel
     if display_comic:
         command_display()
     if display_comic_image:
@@ -94,8 +129,7 @@ def command_display(*arguments):
             img_source = comic_data['img']  # get image path
             with urllib.request.urlopen(img_source) as response:
                 if response.getcode() == 404:
-                    print("No image for comic found (maybe it's interactive?)")
-                    return
+                    return "No image for comic found (maybe it's interactive?)"
                 else:
                     img_data = response.read()
                     # Does our temp dir exist?
@@ -109,15 +143,22 @@ def command_display(*arguments):
         os.system(display_cmd % (tmpimg_location + "%s.png" % sel_comic))
     else:
         with urllib.request.urlopen(api_url % comic) as response:
+            content = response.read()
+            if content == "something went wrong":
+                return "Error"
             data = json.loads(response.read())
         release_date = (data['year'], data['month'], data['day'])
+        transcript = data['transcript']
+        if len(transcript) == 0:
+            transcript = "No transcript avaliable yet.\n\nTitle text: \"" + \
+                         data['alt'] + "\""
         output = data['title'] + "\nRelease date: %s-%s-%s" % release_date + \
-            "\n" + data['transcript']
+            "\n" + transcript
         if use_less:
             proc = Popen("less", shell=True, stdin=PIPE)
             proc.communicate(output.encode())
         else:
-            print(output)
+            return output
 
 
 def command_explain(*arguments):
@@ -134,13 +175,12 @@ def command_explain(*arguments):
     proc = Popen(html_renderer, shell=True, stdin=PIPE, stdout=PIPE)
     content = proc.communicate(content)[0]
     # *WARNING: ABOMINATION INCOMING* #
-    content = "".join(content.decode().split("[edit] ")[1:-1])\
-        .split("[edit] Transcription")[0]
+    content = "".join(content.decode().split("[edit] ")[1:-1])
     if use_less:
         proc = Popen("less", shell=True, stdin=PIPE)
         proc.communicate(content.encode())
     else:
-        print(content)
+        return content
 
 
 def command_save(*arguments):
@@ -148,7 +188,7 @@ def command_save(*arguments):
         location = save_location + str(sel_comic) + ".png"
     else:
         location = arguments[0]
-    print("Saving comic %s to location %s" % (sel_comic, location))
+    output = "Saving comic %s to location %s" % (sel_comic, location) + "\n"
     # If we don't have a cached version, get one
     if not os.path.exists(tmpimg_location + "%s.png" % sel_comic):
         # See previous (display-img) function
@@ -157,8 +197,7 @@ def command_save(*arguments):
         img_source = comic_data['img']  # get image path
         with urllib.request.urlopen(img_source) as response:
             if response.getcode() == 404:
-                print("No image for comic found (maybe it's interactive?)")
-                return
+                return "No image for comic found (maybe it's interactive?)"
             else:
                 img_data = response.read()
                 # Does our temp dir exist?
@@ -172,7 +211,8 @@ def command_save(*arguments):
         # Try to copy the image to the given file
         shutil.copy(tmpimg_location + "%s.png" % sel_comic, location)
     except PermissionError as err:  # We're not allowed to?
-        print(err)  # Tell the user
+        return err  # Tell the user
+    return output
 
 
 def command_next(*arguments):
@@ -203,16 +243,20 @@ def command_prev(*arguments):
 
 def command_first(*arguments):
     global sel_comic
+    output = ""
     if len(arguments) > 0:
-        print("Warning: Command does not accept arguments")
+        output += "Warning: Command does not accept arguments"
     sel_comic = 1  # What part of this do you not understand?
+    return output
 
 
 def command_last(*arguments):
     global sel_comic
+    output = ""
     if len(arguments) > 0:
-        print("Warning: Command does not accept arguments")
+        output += "Warning: Command does not accept arguments"
     sel_comic = cur_max_comic  # This is kind of like the previous one
+    return output
 
 
 def command_goto(*arguments):
@@ -226,39 +270,42 @@ def command_goto(*arguments):
     elif comic > cur_max_comic:  # That comic does not exist
         comic = cur_max_comic  # but the last one does
     elif comic == 404:  # Why does this easter egg cause so much trouble?
-        print("404 Not Found")
-        return
+        return "404 Not Found"
     sel_comic = comic
 
 
 def command_update(*arguments):
     global sel_comic, cur_max_comic
+    output = ""
     if len(arguments) > 0:
-        print("Warning: Command does not accept arguments")
+        output += "Warning: Command does not accept arguments\n"
     with urllib.request.urlopen(api_url % "") as response:
         new_max_comic = json.loads(response.read())['num']
     if new_max_comic > cur_max_comic:
         # The current comic is newer than the one we think is the latest one
         if cur_max_comic + 1 == new_max_comic:  # there is exactly 1 new comic
-            print("1 new comic!")
+            output += "1 new comic!\n"
         else:  # There is more than 1 comic
-            print("%s new comics!" % (new_max_comic - cur_max_comic))
+            output += "%s new comics!\n" % (new_max_comic - cur_max_comic)
         cur_max_comic = new_max_comic  # Update the latest comic
     else:
-        print("No new comics.")
+        output += "No new comics."
+    return output
 
 
 def command_exit(*arguments):
     global isrunning
+    output = ""
     if len(arguments) > 0:
-        print("Warning: Command does not accept arguments")
+        output += "Warning: Command does not accept arguments"
     isrunning = False
+    return output
 
 
 def command_license(*arguments):
+    output = ""
     if len(arguments) > 0:
-        print("Warning: Command takes no arguments")
-        print("")
+        output += "Warning: Command takes no arguments\n"
     program_license = """
 Copyright © 2016 randomdude999
 This program is free software: you can redistribute it and/or modify
@@ -273,7 +320,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>."""
-    print(program_license)
+    output += program_license
+    return output
 
 
 commands = {  # Dict to store commands
@@ -328,29 +376,33 @@ commands_help = {
 
 def command_help(*arguments):
     if len(arguments) == 0:
-        print("Use `next', `prev', `first', `last', `goto' and `random' to "
-              "select comics.")
-        print("Use `display' to show comics' transcriptions.")
-        print("Use `display img' to display images (requires imagemagick and a "
-              "running X server).")
-        print("Use `explain' to open the explain xkcd page for that comic.")
-        print("Use `update' to check for new comics.")
-        print("Use `save' to save comics to disk")
-        print("Use `quit' or exit to exit")
-        print("Use `help [command]' to get help")
+        return """
+Use `next', `prev', `first', `last', `goto' and `random' to select comics.
+Use `display' to show comics' transcriptions.
+Use `display img' to display images (requires imagemagick and a running X
+server).
+Use `explain' to open the explain xkcd page for that comic.
+Use `update' to check for new comics.
+Use `save' to save comics to disk.
+Use `quit' or exit to exit.
+Use `help [command]' to get help."""
     else:
         command = arguments[0]
         if command in commands_help:
-            print(commands_help[command])
+            return commands_help[command]
         elif command in commands:
-            print("Command exists, but has no documentation.")
+            return "Command exists, but has no documentation."
         else:
-            print("Unknown command.")
+            return "Unknown command."
 
 commands["help"] = command_help
 
+
+#  #############################
+#  # Main code                 #
+#  #############################
 sys.stdout.write("\x1b]0;xkcd\x07")
-print("A command line xkcd client")
+print("A command line xkcd client (%s)" % version)
 print("By randomdude999")
 print("Type `help' or `license' for more info")
 
@@ -367,7 +419,7 @@ while isrunning:
         args = cmd.split(" ")
         cmd = args.pop(0)  # Arguments != Command name
         if cmd in commands:  # Hey, we found a matching command!
-            commands[cmd](*args)
+            print(commands[cmd](*args))
         else:  # We did not find a match
             print("Unknown command")
 
