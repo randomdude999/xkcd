@@ -3,7 +3,7 @@ python:
   - "3.5"
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install w3m
+  - sudo apt-get install w3m -y
 script:
   - tests/test.py
   - tests/test_slow.py
