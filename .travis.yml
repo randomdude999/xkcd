@@ -1,15 +1,10 @@
 language: python
 python:
   - "2.7"
-  - "3.2"
   - "3.3"
   - "3.4"
   - "3.5"
-install:
-  - pip install coveralls
 script:
   - cd tests
-  - coverage run test.py
-  - coverage run test_slow.py
-after_success:
-  - coveralls
+  - python test.py
+  - python test_slow.py
