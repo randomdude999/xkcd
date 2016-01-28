@@ -78,8 +78,12 @@ can equate to feeling loved.
         xkcd.command_save(1000, "1000.png")
         with open("1000.png", 'rb') as saved_image:
             content = saved_image.read()
-        with open("1000_correct.png", 'rb') as correct_image:
-            correct_content = correct_image.read()
+        try:
+            with open("1000_correct.png", 'rb') as correct_image:
+                correct_content = correct_image.read()
+        except IOError:
+            with open("tests/1000_correct.png", 'rb') as correct_image:
+                correct_content = correct_image.read()
         self.assertEqual(content, correct_content)
         shutil.rmtree(xkcd.tmpimg_location)
         os.remove("1000.png")

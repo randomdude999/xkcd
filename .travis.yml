@@ -5,7 +5,12 @@ python:
   - "3.3"
   - "3.4"
   - "3.5"
+install:
+  - pip install coveralls
 script:
   - cd tests
   - python test.py
   - python test_slow.py
+  - coverage run test.py
+after_success:
+  - coveralls
