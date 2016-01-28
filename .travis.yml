@@ -9,8 +9,7 @@ install:
   - pip install coveralls
 script:
   - cd tests
-  - python test.py
-  - python test_slow.py
   - coverage run test.py
+  - coverage run test_slow.py
 after_success:
   - coveralls
