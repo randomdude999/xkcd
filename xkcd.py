@@ -55,7 +55,7 @@ except ImportError:
 
 prompt = "xkcd [%s]> "  # the %s is current comic number
 display_cmd = "display %s"  # command used to display images, %s is file path
-html_renderer = "w3m -dump -T text/html -O ascii"  # html to text renderer
+html_renderer = "w3m -dump -T text/html -O utf-8"  # html to text renderer
 tmpimg_location = "/tmp/xkcd/"  # remember trailing (back)slash
 save_location = os.getenv("HOME") + "/Pictures/"  # Default save location
 # Disable if you are using windows / don't know what is the program "less"
