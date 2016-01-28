@@ -9,6 +9,26 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import xkcd
 
 
+def which(program):
+    import os
+
+    def is_exe(filepath):
+        return os.path.isfile(filepath) and os.access(filepath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+
+
 class TestInternetRequiringCommands(unittest.TestCase):
 
     def test_command_display(self):
@@ -23,6 +43,8 @@ Boy: I wonder where I'll float next?
 """
         self.assertEqual(result, expected_result)
 
+    @unittest.skipUnless(which(xkcd.html_renderer.split(" ")[0]),
+                         "Renderer not found")
     def test_command_explain(self):
         result = xkcd.command_explain(1000, "NO_USE_LESS")
         expected_result = """\

@@ -31,8 +31,11 @@ import os
 import sys
 import shutil
 from subprocess import Popen, PIPE
-import urllib.request
 import random  # those are standard
+if sys.version_info.major < 3:
+    import urllib
+else:
+    import urllib.request as urllib
 try:
     import simplejson as json
 except ImportError:
@@ -121,10 +124,10 @@ def command_display(*arguments):
     if "img" in arguments:
         if not os.path.exists(tmpimg_location + "%s.png" % sel_comic):
             # If we don't already have the image:
-            with urllib.request.urlopen(api_url % comic) as response:
+            with urllib.urlopen(api_url % comic) as response:
                 comic_data = json.loads(response.read())
             img_source = comic_data['img']
-            with urllib.request.urlopen(img_source) as response:
+            with urllib.urlopen(img_source) as response:
                 if response.getcode() == 404:
                     return "No image for comic found (maybe it's interactive?)"
                 else:
@@ -136,7 +139,7 @@ def command_display(*arguments):
                     fd.close()
         os.system(display_cmd % (tmpimg_location + "%s.png" % sel_comic))
     else:
-        with urllib.request.urlopen(api_url % comic) as response:
+        with urllib.urlopen(api_url % comic) as response:
             if response.getcode() != 200:
                 return "Something might've gone wrong (response code: %s)" % \
                        response.getcode()
@@ -168,10 +171,10 @@ def command_explain(*arguments):
         else:
             use_less_override = False
     location = explainxkcd_url % comic
-    req = urllib.request.Request(location)
+    req = urllib.Request(location)
     req.add_header("User-Agent", "xkcd/0.1 (by randomdude999 <just.so.you.can."
                                  "email.me@gmail.com>)")
-    with urllib.request.urlopen(req) as response:
+    with urllib.urlopen(req) as response:
         content = response.read()
     proc = Popen(html_renderer, shell=True, stdin=PIPE, stdout=PIPE)
     content = proc.communicate(content)[0]
@@ -197,10 +200,10 @@ def command_save(*arguments):
             location = save_location + str(comic) + ".png"
     output = "Saving comic %s to location %s" % (comic, location) + "\n"
     if not os.path.exists(tmpimg_location + "%s.png" % comic):
-        with urllib.request.urlopen(api_url % comic) as response:
+        with urllib.urlopen(api_url % comic) as response:
             comic_data = json.loads(response.read().decode())
         img_source = comic_data['img']
-        with urllib.request.urlopen(img_source) as response:
+        with urllib.urlopen(img_source) as response:
             if response.getcode() == 404:
                 return "No image for comic found (maybe it's interactive?)"
             else:
@@ -284,7 +287,7 @@ def command_update(*arguments):
     output = ""
     if len(arguments) > 0:
         output += "Warning: Command does not accept arguments\n"
-    with urllib.request.urlopen(api_url % "") as response:
+    with urllib.urlopen(api_url % "") as response:
         new_max_comic = json.loads(response.read())['num']
     if new_max_comic > cur_max_comic:
         if cur_max_comic + 1 == new_max_comic:
@@ -432,7 +435,7 @@ if __name__ == "__main__":
     version = "v0.1"
     isrunning = True
     seen_comics = []
-    with urllib.request.urlopen(api_url % "") as response_:
+    with urllib.urlopen(api_url % "") as response_:
         cur_max_comic = json.loads(response_.read())['num']
     sel_comic = cur_max_comic
     main()
