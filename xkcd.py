@@ -32,8 +32,8 @@ import sys
 import shutil
 from subprocess import Popen, PIPE
 import random  # those are standard
-if sys.version_info.major < 3:
-    import urllib
+if sys.version_info[0] < 3:
+    import urllib2 as urllib
 else:
     import urllib.request as urllib
 try:
@@ -124,27 +124,30 @@ def command_display(*arguments):
     if "img" in arguments:
         if not os.path.exists(tmpimg_location + "%s.png" % sel_comic):
             # If we don't already have the image:
-            with urllib.urlopen(api_url % comic) as response:
-                comic_data = json.loads(response.read())
+            response = urllib.urlopen(api_url % comic)
+            comic_data = json.loads(response.read())
+            response.close()
             img_source = comic_data['img']
-            with urllib.urlopen(img_source) as response:
-                if response.getcode() == 404:
-                    return "No image for comic found (maybe it's interactive?)"
-                else:
-                    img_data = response.read()
-                    if not os.path.isdir(tmpimg_location):
-                        os.mkdir(tmpimg_location)
-                    fd = open(tmpimg_location + "%s.png" % sel_comic, 'wb')
-                    fd.write(img_data)
-                    fd.close()
+            response = urllib.urlopen(img_source)
+            if response.getcode() == 404:
+                return "No image for comic found (maybe it's interactive?)"
+            else:
+                img_data = response.read()
+                if not os.path.isdir(tmpimg_location):
+                    os.mkdir(tmpimg_location)
+                fd = open(tmpimg_location + "%s.png" % sel_comic, 'wb')
+                fd.write(img_data)
+                fd.close()
+            response.close()
         os.system(display_cmd % (tmpimg_location + "%s.png" % sel_comic))
     else:
-        with urllib.urlopen(api_url % comic) as response:
-            if response.getcode() != 200:
-                return "Something might've gone wrong (response code: %s)" % \
-                       response.getcode()
-            content = response.read()
-            data = json.loads(content.decode())
+        response = urllib.urlopen(api_url % comic)
+        if response.getcode() != 200:
+            return "Something might've gone wrong (response code: %s)" % \
+                   response.getcode()
+        content = response.read()
+        response.close()
+        data = json.loads(content.decode())
         release_date = (data['year'], data['month'], data['day'])
         transcript = data['transcript']
         if len(transcript) == 0:
@@ -174,8 +177,9 @@ def command_explain(*arguments):
     req = urllib.Request(location)
     req.add_header("User-Agent", "xkcd/0.1 (by randomdude999 <just.so.you.can."
                                  "email.me@gmail.com>)")
-    with urllib.urlopen(req) as response:
-        content = response.read()
+    response = urllib.urlopen(req)
+    content = response.read()
+    response.close()
     proc = Popen(html_renderer, shell=True, stdin=PIPE, stdout=PIPE)
     content = proc.communicate(content)[0]
     # *WARNING: ABOMINATION INCOMING* #
@@ -200,19 +204,21 @@ def command_save(*arguments):
             location = save_location + str(comic) + ".png"
     output = "Saving comic %s to location %s" % (comic, location) + "\n"
     if not os.path.exists(tmpimg_location + "%s.png" % comic):
-        with urllib.urlopen(api_url % comic) as response:
-            comic_data = json.loads(response.read().decode())
+        response = urllib.urlopen(api_url % comic)
+        comic_data = json.loads(response.read().decode())
+        response.close()
         img_source = comic_data['img']
-        with urllib.urlopen(img_source) as response:
-            if response.getcode() == 404:
-                return "No image for comic found (maybe it's interactive?)"
-            else:
-                img_data = response.read()
-                if not os.path.isdir(tmpimg_location):
-                    os.mkdir(tmpimg_location)
-                fd = open(tmpimg_location + "%s.png" % comic, 'wb')
-                fd.write(img_data)
-                fd.close()
+        response = urllib.urlopen(img_source)
+        if response.getcode() == 404:
+            return "No image for comic found (maybe it's interactive?)"
+        else:
+            img_data = response.read()
+            if not os.path.isdir(tmpimg_location):
+                os.mkdir(tmpimg_location)
+            fd = open(tmpimg_location + "%s.png" % comic, 'wb')
+            fd.write(img_data)
+            fd.close()
+        response.close()
     try:
         shutil.copy(tmpimg_location + "%s.png" % comic, location)
     except PermissionError as err:
@@ -287,8 +293,9 @@ def command_update(*arguments):
     output = ""
     if len(arguments) > 0:
         output += "Warning: Command does not accept arguments\n"
-    with urllib.urlopen(api_url % "") as response:
-        new_max_comic = json.loads(response.read())['num']
+    response = urllib.urlopen(api_url % "")
+    new_max_comic = json.loads(response.read())['num']
+    response.close()
     if new_max_comic > cur_max_comic:
         if cur_max_comic + 1 == new_max_comic:
             output += "1 new comic!\n"
@@ -435,7 +442,8 @@ if __name__ == "__main__":
     version = "v0.1"
     isrunning = True
     seen_comics = []
-    with urllib.urlopen(api_url % "") as response_:
-        cur_max_comic = json.loads(response_.read())['num']
+    response_ = urllib.urlopen(api_url % "")
+    cur_max_comic = json.loads(response_.read())['num']
+    response_.close()
     sel_comic = cur_max_comic
     main()
