@@ -124,39 +124,74 @@ def command_display(*arguments):
     if "img" in arguments:
         if not os.path.exists(tmpimg_location + "%s.png" % sel_comic):
             # If we don't already have the image:
-            response = urllib.urlopen(api_url % comic)
-            comic_data = json.loads(response.read())
+            try:
+                response = urllib.urlopen(api_url % comic)
+            except (IOError, urllib.URLError) as err:
+                return err
+            data = response.read().decode()
+            try:
+                comic_data = json.loads(data)
+            except ValueError:
+                return "Sometihng went wrong when decoding JSON\nraw text:\n%s"\
+                       % data
             response.close()
-            img_source = comic_data['img']
-            response = urllib.urlopen(img_source)
+            try:
+                img_source = comic_data['img']
+            except KeyError:
+                return "Something went *terribly* wrong when decoding JSON\n" \
+                       "data: %s" % comic_data
+            try:
+                response = urllib.urlopen(img_source)
+            except (IOError, urllib.URLError) as err:
+                return err
             if response.getcode() == 404:
                 return "No image for comic found (maybe it's interactive?)"
             else:
                 img_data = response.read()
                 if not os.path.isdir(tmpimg_location):
-                    os.mkdir(tmpimg_location)
-                fd = open(tmpimg_location + "%s.png" % sel_comic, 'wb')
+                    try:
+                        os.mkdir(tmpimg_location)
+                    except OSError as err:
+                        return err
+                try:
+                    fd = open(tmpimg_location + "%s.png" % sel_comic, 'wb')
+                except OSError as err:
+                    return err
                 fd.write(img_data)
                 fd.close()
             response.close()
         os.system(display_cmd % (tmpimg_location + "%s.png" % sel_comic))
     else:
-        response = urllib.urlopen(api_url % comic)
+        try:
+            response = urllib.urlopen(api_url % comic)
+        except (IOError, urllib.URLError) as err:
+            return err
         if response.getcode() != 200:
             return "Something might've gone wrong (response code: %s)" % \
                    response.getcode()
         content = response.read()
         response.close()
-        data = json.loads(content.decode())
-        release_date = (data['year'], data['month'], data['day'])
-        transcript = data['transcript']
+        try:
+            data = json.loads(content.decode())
+        except ValueError:
+            return "Something went wrong when decoding JSON\nraw text:\n%s" % \
+                   content.decode()
+        try:
+            release_date = (data['year'], data['month'], data['day'])
+            transcript = data['transcript']
+        except KeyError:
+            return "Something went *terribly* wrong when decoding JSON\ndata:" \
+                   " %s" % data
         if len(transcript) == 0:
             transcript = "No transcript avaliable yet.\n\nTitle text: \"" + \
                          data['alt'] + "\""
         output = data['title'] + "\nRelease date: %s-%s-%s" % release_date + \
             "\n" + transcript
         if use_less and not use_less_override:
-            proc = Popen("less", shell=True, stdin=PIPE)
+            try:
+                proc = Popen("less", shell=True, stdin=PIPE)
+            except OSError:
+                return output
             proc.communicate(output.encode())
         else:
             return output
@@ -177,15 +212,23 @@ def command_explain(*arguments):
     req = urllib.Request(location)
     req.add_header("User-Agent", "xkcd/0.1 (by randomdude999 <just.so.you.can."
                                  "email.me@gmail.com>)")
-    response = urllib.urlopen(req)
+    try:
+        response = urllib.urlopen(req)
+    except (IOError, urllib.URLError) as err:
+        return err
     content = response.read()
     response.close()
-    proc = Popen(html_renderer, shell=True, stdin=PIPE, stdout=PIPE)
+    try:
+        proc = Popen(html_renderer, shell=True, stdin=PIPE, stdout=PIPE)
+    except OSError as err:
+        return err
     content = proc.communicate(content)[0]
-    # *WARNING: ABOMINATION INCOMING* #
     content = "".join(content.decode().split("[edit] ")[1:-1])
     if use_less and not use_less_override:
-        proc = Popen("less", shell=True, stdin=PIPE)
+        try:
+            proc = Popen("less", shell=True, stdin=PIPE)
+        except OSError as err:
+            return err
         proc.communicate(content.encode())
     else:
         return content
@@ -197,25 +240,40 @@ def command_save(*arguments):
         comic = sel_comic
         location = save_location + str(comic) + ".png"
     else:
-        comic = int(arguments[0])
+        try:
+            comic = int(arguments[0])
+        except ValueError:
+            comic = sel_comic
         if len(arguments) > 1:
             location = " ".join(arguments[1:])
         else:
             location = save_location + str(comic) + ".png"
     output = "Saving comic %s to location %s" % (comic, location) + "\n"
     if not os.path.exists(tmpimg_location + "%s.png" % comic):
-        response = urllib.urlopen(api_url % comic)
+        try:
+            response = urllib.urlopen(api_url % comic)
+        except (IOError, urllib.URLError) as err:
+            return err
         comic_data = json.loads(response.read().decode())
         response.close()
         img_source = comic_data['img']
-        response = urllib.urlopen(img_source)
+        try:
+            response = urllib.urlopen(img_source)
+        except (IOError, urllib.URLError) as err:
+            return err
         if response.getcode() == 404:
             return "No image for comic found (maybe it's interactive?)"
         else:
             img_data = response.read()
             if not os.path.isdir(tmpimg_location):
-                os.mkdir(tmpimg_location)
-            fd = open(tmpimg_location + "%s.png" % comic, 'wb')
+                try:
+                    os.mkdir(tmpimg_location)
+                except OSError as err:
+                    return err
+            try:
+                fd = open(tmpimg_location + "%s.png" % comic, 'wb')
+            except OSError as err:
+                return err
             fd.write(img_data)
             fd.close()
         response.close()
@@ -231,7 +289,10 @@ def command_next(*arguments):
     if len(arguments) < 1:
         amount = 1
     else:
-        amount = int(arguments[0])
+        try:
+            amount = int(arguments[0])
+        except ValueError:
+            amount = 1
     sel_comic += amount
     if sel_comic > cur_max_comic:
         sel_comic = cur_max_comic
@@ -245,7 +306,10 @@ def command_prev(*arguments):
     if len(arguments) < 1:
         amount = 1
     else:
-        amount = int(arguments[0])
+        try:
+            amount = int(arguments[0])
+        except ValueError:
+            amount = 1
     sel_comic -= amount
     if sel_comic < 1:
         sel_comic = 1
@@ -277,7 +341,10 @@ def command_goto(*arguments):
     if len(arguments) < 1:
         comic = cur_max_comic
     else:
-        comic = int(arguments[0])
+        try:
+            comic = int(arguments[0])
+        except ValueError:
+            comic = cur_max_comic
     if comic < 1:
         comic = 1
     elif comic > cur_max_comic:
@@ -293,7 +360,10 @@ def command_update(*arguments):
     output = ""
     if len(arguments) > 0:
         output += "Warning: Command does not accept arguments\n"
-    response = urllib.urlopen(api_url % "")
+    try:
+        response = urllib.urlopen(api_url % "")
+    except (IOError, urllib.URLError) as err:
+        return err
     new_max_comic = json.loads(response.read())['num']
     response.close()
     if new_max_comic > cur_max_comic:
@@ -359,6 +429,10 @@ Use `help [command]' to get help."""
         else:
             return "Unknown command."
 
+#  #############################
+#  # Commands index & help     #
+#  #############################
+
 commands = {
     "random": command_random,
     "display": command_display,
@@ -401,8 +475,9 @@ commands_help = {
     "goto": "Moves to comic number [argument]. Without arguments, goes to last "
             "comic",
     "update": "Updates latest comic. Takes no arguments.",
-    "save": "Saves selected comic to disk, with file name [argument]. Without "
-            "arguments, saves to [comic number].png.",
+    "save": "Saves comic [argument 1, if missing, selected comic] to disk, with"
+            " file name [arguments 2+]. Without arguments, saves to "
+            "[comic number].png.",
     "quit": "Closes the program. Takes no arguments.",
     "exit": "Closes the program. Takes no arguments.",
     "help": "Shows help. With an argument, shows help for command [argument].",
