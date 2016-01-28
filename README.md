@@ -19,7 +19,7 @@ Download / `git clone` the repository. If you are not a developer, you can delet
 
 Open a terminal. Then make sure you are in the directory you downloaded.  
 Type:  
-`sudo cp xkcd.py /usr/local/bin/xkcd`
+`sudo cp xkcd.py /usr/local/bin/xkcd`  
 This will copy `xkcd.py` to `/usr/local/bin` under the name `xkcd`.
 
 Now type `xkcd` to test if it worked.
