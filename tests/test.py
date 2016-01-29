@@ -5,6 +5,7 @@ import unittest
 import random
 import os
 import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import xkcd
@@ -167,5 +168,4 @@ class TestCommandRandom(unittest.TestCase):
         self.assertEqual(xkcd.sel_comic, randint)
 
 if __name__ == '__main__':
-    sel_comic = 0
     unittest.main()
