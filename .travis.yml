@@ -6,5 +6,5 @@ python:
   - "3.5"
 script:
   - cd tests
-  - python test.py
-  - python test_slow.py
+  - python test.py -v
+  - python test_slow.py -v

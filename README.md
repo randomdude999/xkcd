@@ -1,5 +1,5 @@
 # xkcd
-[![Travis](https://img.shields.io/travis/randomdude999/xkcd/master.svg)](https://travis-ci.org/randomdude999/xkcd) [![GitHub release](https://img.shields.io/github/release/randomdude999/xkcd.svg)](https://github.com/randomdude999/xkcd/releases/latest)
+[![Build Status](https://travis-ci.org/randomdude999/xkcd.svg?branch=master)](https://travis-ci.org/randomdude999/xkcd) [![GitHub Release](https://img.shields.io/github/release/randomdude999/xkcd.svg)](https://github.com/randomdude999/xkcd/releases/latest)
 
 A command line xkcd client.
 
@@ -7,7 +7,7 @@ A command line xkcd client.
 
 ### Which Python?
 
-If you see a green "build | passing" near the top, that means the program is fully working in Python 2.7, 3.3, 3.4 and 3.5. If it's a red "build | failing", click it for more information. (Sometimes, it's unittest's mistake, so see what jobs fail)
+If you see a green "build | passing" near the top, that means the program is fully working in Python 2.7, 3.3, 3.4 and 3.5. If it's a red "build | failing", click it for more information. (Sometimes, it's unittest's mistake, so check which jobs fail)
 
 ### Platform-independent
 
