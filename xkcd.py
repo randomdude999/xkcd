@@ -107,7 +107,7 @@ def get_url(url, return_how_much=0):
 def get_img(num):
     data = get_url(api_url % num)
     try:
-        comic_data = json.loads(data)
+        comic_data = json.loads(data.decode())
         img_source = comic_data['img']
     except (KeyError, ValueError):
         return "Something went wrong when decoding JSON\nraw text:\n%s" % data
@@ -174,7 +174,7 @@ def parse_input(inp):
 
 def get_printable_data(api_data):
     try:
-        data = json.loads(api_data)
+        data = json.loads(api_data.decode())
         release_date = (data['year'], data['month'], data['day'])
         transcript = data['transcript']
     except (ValueError, KeyError):
@@ -189,8 +189,7 @@ def get_printable_data(api_data):
 
 
 def display_img(comic):
-    if not os.path.exists(tmpimg_location + "%s.png" % comic):
-        get_img(comic)
+    create_tmpfile_if_not_exist(comic)
     os.system(display_cmd % (tmpimg_location + "%s.png" % comic))
     return ""
 
@@ -241,6 +240,22 @@ def update_search_db():
         transcripts_file.close()
         alt_texts_file.close()
     return output
+
+
+def create_tmpfile_if_not_exist(comic):
+    if not os.path.exists(tmpimg_location + "%s.png" % comic):
+        get_img(comic)
+
+
+def get_amount_from_args(*arguments):
+    if len(arguments) < 1:
+        amount = 1
+    else:
+        try:
+            amount = int(arguments[0])
+        except ValueError:
+            amount = 1
+    return amount
 
 
 #  #############################
@@ -296,8 +311,7 @@ def command_save(*arguments):
     else:
         location = " ".join(arguments)
     output = "Saving comic %s to location %s" % (sel_comic, location) + "\n"
-    if not os.path.exists(tmpimg_location + "%s.png" % sel_comic):
-        get_img(sel_comic)
+    create_tmpfile_if_not_exist(sel_comic)
     try:
         shutil.copy(tmpimg_location + "%s.png" % sel_comic, location)
     except OSError as err:
@@ -307,13 +321,7 @@ def command_save(*arguments):
 
 def command_next(*arguments):
     global sel_comic
-    if len(arguments) < 1:
-        amount = 1
-    else:
-        try:
-            amount = int(arguments[0])
-        except ValueError:
-            amount = 1
+    amount = get_amount_from_args(arguments)
     sel_comic += amount
     if sel_comic > cur_max_comic:
         sel_comic = cur_max_comic
@@ -324,13 +332,7 @@ def command_next(*arguments):
 
 def command_prev(*arguments):
     global sel_comic
-    if len(arguments) < 1:
-        amount = 1
-    else:
-        try:
-            amount = int(arguments[0])
-        except ValueError:
-            amount = 1
+    amount = get_amount_from_args(arguments)
     sel_comic -= amount
     if sel_comic < 1:
         sel_comic = 1
