@@ -66,9 +66,7 @@ use_less = True
 
 # URLs
 
-base_url = "http://c.xkcd.com"  # That weird API-like website (try browsing it!)
-random_url = base_url + "/random/comic"  # Random page URL
-api_url = base_url + "/api-0/jsonp/comic/%s"  # Comic metadata URL
+api_url = "http://xkcd.com/%s/info.0.json"  # Comic metadata URL (%s = comic #)
 explainxkcd_url = "http://www.explainxkcd.com/%s"
 
 
