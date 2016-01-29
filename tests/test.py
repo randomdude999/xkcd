@@ -83,12 +83,6 @@ class TestCommandGoto(unittest.TestCase):
         xkcd.command_goto(666)
         self.assertEqual(xkcd.sel_comic, 666)
 
-    def test_command_goto_404(self):
-        xkcd.sel_comic = 666
-        xkcd.cur_max_comic = 1000
-        response = xkcd.command_goto(404)
-        self.assertEqual(response, "404 Not Found")
-
     def test_command_goto_first(self):
         xkcd.sel_comic = 666
         xkcd.cur_max_comic = 1000
@@ -110,7 +104,7 @@ class TestCommandsExitLicense(unittest.TestCase):
         self.assertEqual(xkcd.isrunning, False)
 
     def test_command_license(self):
-        expected_output = """
+        expected_output = """\
 Copyright © 2016 randomdude999
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -139,7 +133,7 @@ server).
 Use `explain' to open the explain xkcd page for that comic.
 Use `update' to check for new comics.
 Use `save' to save comics to disk.
-Use `quit' or exit to exit.
+Use `quit' or `exit' to exit.
 Use `help [command]' to get help."""
         output = xkcd.command_help()
         self.assertEqual(output, expected_output)

@@ -32,7 +32,8 @@ def which(program):
 class TestInternetRequiringCommands(unittest.TestCase):
 
     def test_command_display(self):
-        result = xkcd.command_display(1, "NO_USE_LESS")
+        xkcd.use_less = False
+        result = xkcd.command_display(1)
         expected_result = """\
 Barrel - Part 1
 Release date: 2006-1-1
@@ -46,7 +47,8 @@ Boy: I wonder where I'll float next?
     @unittest.skipUnless(which(xkcd.html_renderer.split(" ")[0]),
                          "Renderer not found")
     def test_command_explain(self):
-        result = xkcd.command_explain(1000, "NO_USE_LESS")
+        xkcd.use_less = False
+        result = xkcd.command_explain(1000)
         expected_result = """\
 Explanation
 
@@ -75,7 +77,8 @@ can equate to feeling loved.
         self.assertEqual(result, expected_result)
 
     def test_command_save(self):
-        xkcd.command_save(1000, "1000.png")
+        xkcd.sel_comic = 1000
+        xkcd.command_save("1000.png")
         with open("1000.png", 'rb') as saved_image:
             content = saved_image.read()
         try:
