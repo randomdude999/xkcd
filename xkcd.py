@@ -539,7 +539,7 @@ def main():
         shutil.rmtree(tmpimg_location)
 
 if __name__ == "__main__":
-    version = "v0.1"
+    version = "v0.2"
     isrunning = True
     seen_comics = []
     try:
