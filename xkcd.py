@@ -107,7 +107,7 @@ def get_url(url, return_how_much=0):
 def get_img(num):
     data = get_url(api_url % num)
     try:
-        comic_data = json.loads(data.decode())
+        comic_data = json.loads(data.decode('utf-8'))
         img_source = comic_data['img']
     except (KeyError, ValueError):
         return "Something went wrong when decoding JSON\nraw text:\n%s" % data
@@ -174,7 +174,7 @@ def parse_input(inp):
 
 def get_printable_data(api_data):
     try:
-        data = json.loads(api_data.decode())
+        data = json.loads(api_data.decode('utf-8'))
         release_date = (data['year'], data['month'], data['day'])
         transcript = data['transcript']
     except (ValueError, KeyError):
@@ -248,11 +248,11 @@ def create_tmpfile_if_not_exist(comic):
 
 
 def get_amount_from_args(*arguments):
-    if len(arguments) < 1:
+    if len(arguments[0]) == 0:
         amount = 1
     else:
         try:
-            amount = int(arguments[0])
+            amount = int(arguments[0][0])
         except ValueError:
             amount = 1
     return amount
@@ -301,7 +301,7 @@ def command_explain(*arguments):
     except OSError as err:
         return err
     content = proc.communicate(content)[0]
-    content = "".join(content.decode().split("[edit] ")[1:-1])
+    content = "".join(content.decode('utf-8').split("[edit] ")[1:-1])
     return print_long_text(content)
 
 
