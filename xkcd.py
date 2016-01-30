@@ -46,7 +46,7 @@ except ImportError:
     # Well, you don't *have* to have readline, but it definitely helps!
     readline = None
 
-version = "v0.2"
+version = "v0.3"
 
 #  #############################
 #  # Configuration             #
