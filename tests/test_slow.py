@@ -61,6 +61,8 @@ Boy: I wonder where I'll float next?
         expected_result = comic_1000_transcript
         self.assertEqual(result, expected_result)
 
+    @unittest.skipUnless(os.path.exists(xkcd.html_renderer[0]),
+                         "Renderer not found")
     def test_command_explain_with_arg(self):
         xkcd.use_less = False
         result = xkcd.command_explain(1000)
@@ -68,6 +70,7 @@ Boy: I wonder where I'll float next?
         self.assertEqual(result, expected_result)
 
     def test_command_explain_invalidRenderer(self):
+        xkcd.sel_comic = 1
         renderer = xkcd.html_renderer
         xkcd.html_renderer = "this_is_a_fake_command"
         output = xkcd.command_explain()
