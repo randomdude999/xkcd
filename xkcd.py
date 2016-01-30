@@ -130,13 +130,10 @@ def get_img(num):
 
 
 def get_offline_metadata():
-    try:
-        with open(titles_location) as titles:
-            titles_str = titles.read()
-        with open(transcripts_location) as transcripts:
-            transcripts_str = transcripts.read()
-    except OSError as err:
-        return err
+    with open(titles_location) as titles:
+        titles_str = titles.read()
+    with open(transcripts_location) as transcripts:
+        transcripts_str = transcripts.read()
     titles_list = titles_str.split("\n")
     transcripts_list = transcripts_str.split("\n")
     return titles_list, transcripts_list
@@ -169,6 +166,7 @@ def search_transcripts(transcripts_list, query, titles_list):
 
 
 def parse_input(inp):
+    output = ""
     cmds = inp.split(";")
     for cmd in cmds:
         cmd = cmd.strip()
@@ -176,13 +174,14 @@ def parse_input(inp):
         cmd = args.pop(0)
         if cmd in commands:
             try:
-                print(commands[cmd](*args))
+                output += commands[cmd](*args) + "\n"
             except Exception as err:
-                print(err)
+                output += str(err)
         elif len(cmd) == 0:
             pass
         else:
-            print("Unknown command")
+            output += "Unknown command\n"
+    return output
 
 
 def get_printable_data(api_data):
@@ -254,7 +253,9 @@ def update_search_db():
 
 def create_tmpfile_if_not_exist(comic):
     if not os.path.exists(tmpimg_location + "%s.png" % comic):
-        get_img(comic)
+        return get_img(comic)
+    else:
+        return ""
 
 
 def get_amount_from_args(arguments):
@@ -329,12 +330,12 @@ def command_save(*arguments):
         location = save_location + str(sel_comic) + ".png"
     else:
         location = " ".join(arguments)
-    output = "Saving comic %s to location %s" % (sel_comic, location) + "\n"
-    create_tmpfile_if_not_exist(sel_comic)
-    try:
+    output = "Saving comic %s to location %s" % (sel_comic, location)
+    tmpfile_out = create_tmpfile_if_not_exist(sel_comic)
+    if tmpfile_out != "No image for comic found (maybe it's interactive?)":
         shutil.copy(tmpimg_location + "%s.png" % sel_comic, location)
-    except IOError as err:
-        return err
+    else:
+        return tmpfile_out
     return output
 
 
@@ -586,7 +587,7 @@ def main():
         except (KeyboardInterrupt, EOFError):
             print()
             break
-        parse_input(inp)
+        print(parse_input(inp))
 
     if os.path.exists(tmpimg_location):
         shutil.rmtree(tmpimg_location)
@@ -599,7 +600,7 @@ if __name__ == "__main__":
     except urllib.URLError as urllib_error:
         print(urllib_error)
         sys.exit(1)
-    cur_max_comic = json.loads(response_.read())['num']
+    cur_max_comic = json.loads(response_.read().decode())['num']
     response_.close()
     sel_comic = cur_max_comic
     main()

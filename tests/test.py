@@ -37,6 +37,21 @@ can equate to feeling loved.
 
 """
 
+program_license = """\
+Copyright © 2016 randomdude999
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>."""
+
 
 class TestInternetRequiringCommands(unittest.TestCase):
 
@@ -93,6 +108,12 @@ Boy: I wonder where I'll float next?
         self.assertEqual(content, correct_content)
         shutil.rmtree(xkcd.tmpimg_location)
         os.remove("1000.png")
+
+    def test_command_save_404(self):
+        xkcd.sel_comic = 1608
+        output = xkcd.command_save()
+        excepted_output = "No image for comic found (maybe it's interactive?)"
+        self.assertEqual(output, excepted_output)
 
     @unittest.skipIf(sys.version_info[0] < 3, "Py3 random != Py2 random")
     def test_command_random_display_py3(self):
@@ -255,20 +276,7 @@ class TestCommandsExitLicense(unittest.TestCase):
         self.assertEqual(output, "Command does not take arguments")
 
     def test_command_license(self):
-        excepted_output = """\
-Copyright © 2016 randomdude999
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>."""
+        excepted_output = program_license
         output = xkcd.command_license()
         self.assertEqual(output, excepted_output)
 
@@ -367,6 +375,21 @@ class TestCommandSearch(unittest.TestCase):
     def test_command_search_transcripts_noargs(self):
         excepted_output = "Missing argument: query"
         output = xkcd.command_search_transcripts()
+        self.assertEqual(output, excepted_output)
+
+
+class TestMiscFunctions(unittest.TestCase):
+
+    def test_func_parse_input(self):
+        cmd = "license"
+        output = xkcd.parse_input(cmd)
+        excepted_output = program_license + "\n"
+        self.assertEqual(output, excepted_output)
+
+    def test_func_parse_input_unknown_cmd(self):
+        cmd = "nosuchcommand"
+        output = xkcd.parse_input(cmd)
+        excepted_output = "Unknown command\n"
         self.assertEqual(output, excepted_output)
 
 if __name__ == '__main__':
