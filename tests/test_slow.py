@@ -133,8 +133,8 @@ Release date: 2008-8-1
     def test_command_update(self):
         xkcd.cur_max_comic = 1000
         output = xkcd.command_update()
-        generic_output = " new comics!"
-        self.assertEqual(output[-12:], generic_output)
+        generic_output = " new comics!\n"
+        self.assertEqual(output[-13:], generic_output)
 
 if __name__ == '__main__':
     unittest.main()
