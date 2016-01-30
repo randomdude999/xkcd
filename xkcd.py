@@ -46,6 +46,7 @@ except ImportError:
     # Well, you don't *have* to have readline, but it definitely helps!
     readline = None
 
+version = "v0.2"
 
 #  #############################
 #  # Configuration             #
@@ -85,10 +86,7 @@ def print_long_text(text):
         return text
 
 
-def get_url(url, return_status_code=False):
-    req = urllib.Request(url)
-    req.add_header("User-Agent", "xkcd/0.1 (by randomdude999 <just.so.you.can."
-                                 "email.me@gmail.com>)")
+def get_url_(req):
     try:
         response = urllib.urlopen(req)
     except urllib.HTTPError as err:
@@ -98,6 +96,14 @@ def get_url(url, return_status_code=False):
         content = response.read()
         response_code = response.getcode()
         response.close()
+    return content, response_code
+
+
+def get_url(url, return_status_code=False):
+    req = urllib.Request(url)
+    req.add_header("User-Agent", "xkcd/%s (by randomdude999 <just.so.you.can."
+                                 "email.me@gmail.com>)" % version)
+    content, response_code = get_url_(req)
     if return_status_code:
         return content, response_code
     else:
@@ -136,25 +142,29 @@ def get_offline_metadata():
     return titles_list, transcripts_list
 
 
+def match_query(query, title):
+    try:
+        if query.lower() in eval(":".join(title.split(":")[1:])).lower():
+            return True
+        else:
+            return False
+    except SyntaxError:
+        return False
+
+
 def search_titles(titles_list, query):
     matches = []
     for x in titles_list:
-        try:
-            if query.lower() in eval(":".join(x.split(":")[1:])).lower():
-                matches.append(x)
-        except SyntaxError:
-            pass
+        if match_query(query, x):
+            matches.append(x)
     return matches
 
 
 def search_transcripts(transcripts_list, query, titles_list):
     matches = []
     for x in transcripts_list:
-        try:
-            if query.lower() in eval(":".join(x.split(":")[1:])).lower():
-                matches.append(titles_list[transcripts_list.index(x)])
-        except SyntaxError:
-            pass
+        if match_query(query, x):
+            matches.append(titles_list[transcripts_list.index(x)])
     return matches
 
 
@@ -256,6 +266,15 @@ def get_amount_from_args(arguments):
         except ValueError:
             amount = 1
     return amount
+
+
+def parse_matches(matches):
+    matches = list(set(matches))
+    output = "Matches:\n"
+    for x in matches:
+        result = (x.split(":")[0], eval(":".join(x.split(":")[1:])))
+        output += "(#%s) %s\n" % result
+    return output
 
 
 #  #############################
@@ -455,12 +474,7 @@ def command_search(*arguments):
         matches = []
         matches += search_titles(titles_list, query)
         matches += search_transcripts(transcripts_list, query, titles_list)
-        matches = list(set(matches))
-        output = "Matches:\n"
-        for x in matches:
-            result = (x.split(":")[0], eval(":".join(x.split(":")[1:])))
-            output += "(#%s) %s\n" % result
-        return output
+        return parse_matches(matches)
 
 
 def command_search_titles(*arguments):
@@ -474,12 +488,7 @@ def command_search_titles(*arguments):
         titles_list, transcripts_list = get_offline_metadata()
         matches = []
         matches += search_titles(titles_list, query)
-        matches = list(set(matches))
-        output = "Matches:\n"
-        for x in matches:
-            result = (x.split(":")[0], eval(":".join(x.split(":")[1:])))
-            output += "(#%s) %s\n" % result
-        return output
+        return parse_matches(matches)
 
 
 def command_search_transcripts(*arguments):
@@ -495,12 +504,7 @@ def command_search_transcripts(*arguments):
         titles_list, transcripts_list = get_offline_metadata()
         matches = []
         matches += search_transcripts(transcripts_list, query, titles_list)
-        matches = list(set(matches))
-        output = "Matches:\n"
-        for x in matches:
-            result = (x.split(":")[0], eval(":".join(x.split(":")[1:])))
-            output += "(#%s) %s\n" % result
-        return output
+        return parse_matches(matches)
 
 #  #############################
 #  # Commands index & help     #
@@ -588,7 +592,6 @@ def main():
         shutil.rmtree(tmpimg_location)
 
 if __name__ == "__main__":
-    version = "v0.2"
     isrunning = True
     seen_comics = []
     try:
