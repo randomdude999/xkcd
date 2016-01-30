@@ -1,5 +1,5 @@
 # xkcd
-[![Build Status](https://travis-ci.org/randomdude999/xkcd.svg?branch=master)](https://travis-ci.org/randomdude999/xkcd) [![GitHub Release](https://img.shields.io/github/release/randomdude999/xkcd.svg)](https://github.com/randomdude999/xkcd/releases/latest)
+[![Build Status](https://travis-ci.org/randomdude999/xkcd.svg?branch=master)](https://travis-ci.org/randomdude999/xkcd) [![Coverage Status](https://coveralls.io/repos/github/randomdude999/xkcd/badge.svg?branch=devel)](https://coveralls.io/github/randomdude999/xkcd?branch=master) [![Code Climate](https://codeclimate.com/github/randomdude999/xkcd/badges/gpa.svg)](https://codeclimate.com/github/randomdude999/xkcd)
 
 A command line xkcd client.
 
@@ -23,10 +23,6 @@ Type:
 This will copy `xkcd.py` to `/usr/local/bin` under the name `xkcd`.
 
 Now type `xkcd` to test if it worked.
-
-### Windows
-
-If you know how to install a python script to the path of a Windows machine, please [raise an issue](https://github.com/randomdude999/xkcd/issues/new)!
 
 ## Tests
 
