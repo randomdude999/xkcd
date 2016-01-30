@@ -46,6 +46,7 @@ except ImportError:
     # Well, you don't *have* to have readline, but it definitely helps!
     readline = None
 
+version = "v0.3"
 
 #  #############################
 #  # Configuration             #
@@ -55,12 +56,11 @@ except ImportError:
 
 prompt = "xkcd [%s]> "  # the %s is current comic number
 display_cmd = "display %s"  # command used to display images, %s is file path
-html_renderer = "w3m -dump -T text/html -O utf-8"  # html to text renderer
+html_renderer = ("/usr/bin/w3m", "-dump", "-T", "text/html", "-O", "utf-8")
 tmpimg_location = "/tmp/xkcd/"  # remember trailing (back)slash
 save_location = os.getenv("HOME") + "/Pictures/"  # Default save location
-titles_location = "/usr/share/xkcd/titles.txt"  # Location to store comic titles
+titles_location = "/usr/share/xkcd/titles.txt"  # Location to store titles
 transcripts_location = "/usr/share/xkcd/transcripts.txt"  # ^ for transcripts
-alt_texts_location = "/usr/share/xkcd/alt_texts.txt"  # ^^ for title texts
 # Disable if you are using windows / don't know what is the program "less"
 use_less = True
 
@@ -86,22 +86,28 @@ def print_long_text(text):
         return text
 
 
-def get_url(url, return_how_much=0):
-    req = urllib.Request(url)
-    req.add_header("User-Agent", "xkcd/0.1 (by randomdude999 <just.so.you.can."
-                                 "email.me@gmail.com>)")
+def get_url_(req):
     try:
         response = urllib.urlopen(req)
-    except (IOError, urllib.URLError) as err:
-        return err
-    content = response.read()
-    response.close()
-    if return_how_much == 0:
+    except urllib.HTTPError as err:
+        content = err.read()
+        response_code = err.getcode()
+    else:
+        content = response.read()
+        response_code = response.getcode()
+        response.close()
+    return content, response_code
+
+
+def get_url(url, return_status_code=False):
+    req = urllib.Request(url)
+    req.add_header("User-Agent", "xkcd/%s (by randomdude999 <just.so.you.can."
+                                 "email.me@gmail.com>)" % version)
+    content, response_code = get_url_(req)
+    if return_status_code:
+        return content, response_code
+    else:
         return content
-    elif return_how_much == 1:
-        return content, response.getcode()
-    elif return_how_much > 1:
-        return content, response
 
 
 def get_img(num):
@@ -111,7 +117,7 @@ def get_img(num):
         img_source = comic_data['img']
     except (KeyError, ValueError):
         return "Something went wrong when decoding JSON\nraw text:\n%s" % data
-    result = get_url(img_source, return_how_much=1)
+    result = get_url(img_source, True)
     if result[1] == 404:
         return "No image for comic found (maybe it's interactive?)"
     else:
@@ -124,22 +130,29 @@ def get_img(num):
 
 
 def get_offline_metadata():
-    try:
-        with open(titles_location) as titles:
-            titles_str = titles.read()
-        with open(transcripts_location) as transcripts:
-            transcripts_str = transcripts.read()
-    except OSError as err:
-        return err
+    with open(titles_location) as titles:
+        titles_str = titles.read()
+    with open(transcripts_location) as transcripts:
+        transcripts_str = transcripts.read()
     titles_list = titles_str.split("\n")
     transcripts_list = transcripts_str.split("\n")
     return titles_list, transcripts_list
 
 
+def match_query(query, title):
+    try:
+        if query.lower() in eval(":".join(title.split(":")[1:])).lower():
+            return True
+        else:
+            return False
+    except SyntaxError:
+        return False
+
+
 def search_titles(titles_list, query):
     matches = []
     for x in titles_list:
-        if query.lower() in ":".join(x.split(":")[1:]).lower():
+        if match_query(query, x):
             matches.append(x)
     return matches
 
@@ -147,15 +160,13 @@ def search_titles(titles_list, query):
 def search_transcripts(transcripts_list, query, titles_list):
     matches = []
     for x in transcripts_list:
-        try:
-            if query.lower() in eval(":".join(x.split(":")[1:])).lower():
-                matches.append(titles_list[transcripts_list.index(x)])
-        except SyntaxError:
-            pass
+        if match_query(query, x):
+            matches.append(titles_list[transcripts_list.index(x)])
     return matches
 
 
 def parse_input(inp):
+    output = ""
     cmds = inp.split(";")
     for cmd in cmds:
         cmd = cmd.strip()
@@ -163,13 +174,14 @@ def parse_input(inp):
         cmd = args.pop(0)
         if cmd in commands:
             try:
-                print(commands[cmd](*args))
+                output += commands[cmd](*args) + "\n"
             except Exception as err:
-                print(err)
+                output += str(err)
         elif len(cmd) == 0:
             pass
         else:
-            print("Unknown command")
+            output += "Unknown command\n"
+    return output
 
 
 def get_printable_data(api_data):
@@ -195,9 +207,10 @@ def display_img(comic):
 
 
 def display_text(comic):
-    response = get_url(api_url % comic, return_how_much=1)
+    response = get_url(api_url % comic, True)
     if response[1] != 200:
-        return "Something might've gone wrong (response code: %s)" % response[1]
+        return "Something might've gone wrong (response code: %s)" % \
+               response[1]
     content = response[0]
     output = get_printable_data(content)
     return print_long_text(output)
@@ -205,7 +218,7 @@ def display_text(comic):
 
 def random_unique():
     global seen_comics
-    avail = list(range(1, cur_max_comic))
+    avail = list(range(1, cur_max_comic + 1))
     for x in seen_comics:
         avail.remove(x)
     avail.remove(404)
@@ -225,37 +238,44 @@ def update_search_db():
     if cur_max_comic > last_comic:
         title_file = open(titles_location, 'a')
         transcripts_file = open(transcripts_location, 'a')
-        alt_texts_file = open(alt_texts_location, 'a')
         for x in range(last_comic + 1, cur_max_comic + 1):
             with urllib.urlopen(api_url % x) as response:
                 resp_json = json.loads(response.read())
                 title = repr(resp_json['title'])
                 number = resp_json['num']
                 transcript = repr(resp_json['transcript'])
-                alt_text = repr(resp_json['alt'])
                 title_file.write("%s:%s\n" % (number, title))
                 transcripts_file.write("%s:%s\n" % (number, transcript))
-                alt_texts_file.write("%s:%s\n" % (number, alt_text))
         title_file.close()
         transcripts_file.close()
-        alt_texts_file.close()
     return output
 
 
 def create_tmpfile_if_not_exist(comic):
     if not os.path.exists(tmpimg_location + "%s.png" % comic):
-        get_img(comic)
+        return get_img(comic)
+    else:
+        return ""
 
 
-def get_amount_from_args(*arguments):
-    if len(arguments[0]) == 0:
+def get_amount_from_args(arguments):
+    if len(arguments) == 0:
         amount = 1
     else:
         try:
-            amount = int(arguments[0][0])
+            amount = int(arguments[0])
         except ValueError:
             amount = 1
     return amount
+
+
+def parse_matches(matches):
+    matches = list(set(matches))
+    output = "Matches:\n"
+    for x in matches:
+        result = (x.split(":")[0], eval(":".join(x.split(":")[1:])))
+        output += "(#%s) %s\n" % result
+    return output
 
 
 #  #############################
@@ -297,9 +317,9 @@ def command_explain(*arguments):
     location = explainxkcd_url % comic
     content = get_url(location)
     try:
-        proc = Popen(html_renderer, shell=True, stdin=PIPE, stdout=PIPE)
-    except OSError as err:
-        return err
+        proc = Popen(html_renderer, stdin=PIPE, stdout=PIPE)
+    except OSError:
+        return "HTML renderer not found"
     content = proc.communicate(content)[0]
     content = "".join(content.decode('utf-8').split("[edit] ")[1:-1])
     return print_long_text(content)
@@ -310,12 +330,12 @@ def command_save(*arguments):
         location = save_location + str(sel_comic) + ".png"
     else:
         location = " ".join(arguments)
-    output = "Saving comic %s to location %s" % (sel_comic, location) + "\n"
-    create_tmpfile_if_not_exist(sel_comic)
-    try:
+    output = "Saving comic %s to location %s" % (sel_comic, location)
+    tmpfile_out = create_tmpfile_if_not_exist(sel_comic)
+    if tmpfile_out != "No image for comic found (maybe it's interactive?)":
         shutil.copy(tmpimg_location + "%s.png" % sel_comic, location)
-    except OSError as err:
-        return err
+    else:
+        return tmpfile_out
     return output
 
 
@@ -378,7 +398,7 @@ def command_update(*arguments):
     global sel_comic, cur_max_comic
     output = ""
     response = get_url(api_url % "")
-    new_max_comic = json.loads(response)['num']
+    new_max_comic = json.loads(response.decode('utf-8'))['num']
     if new_max_comic > cur_max_comic:
         if cur_max_comic + 1 == new_max_comic:
             output += "1 new comic!\n"
@@ -443,9 +463,10 @@ Use `help [command]' to get help."""
 
 
 def command_search(*arguments):
-    if not os.path.exists(titles_location):
-        return "This function needs a dictionary of comic titles. Please see " \
-               "the documentation of the program for more info."
+    if not os.path.exists(titles_location) or not \
+            os.path.exists(transcripts_location):
+        return "This function needs a dictionary of comic titles. Please " \
+               "see the documentation of the program for more info."
     elif len(arguments) < 1:
         return "Missing argument: query"
     else:
@@ -454,11 +475,37 @@ def command_search(*arguments):
         matches = []
         matches += search_titles(titles_list, query)
         matches += search_transcripts(transcripts_list, query, titles_list)
-        output = "Matches:\n"
-        for x in matches:
-            result = (x.split(":")[0], ":".join(x.split(":")[1:]))
-            output += "(#%s) %s\n" % result
-        return output
+        return parse_matches(matches)
+
+
+def command_search_titles(*arguments):
+    if not os.path.exists(titles_location):
+        return "This function needs a dictionary of comic titles. Please " \
+               "see the documentation of the program for more info."
+    elif len(arguments) < 1:
+        return "Missing argument: query"
+    else:
+        query = " ".join(arguments)
+        titles_list, transcripts_list = get_offline_metadata()
+        matches = []
+        matches += search_titles(titles_list, query)
+        return parse_matches(matches)
+
+
+def command_search_transcripts(*arguments):
+
+    if not os.path.exists(titles_location) or not \
+            os.path.exists(transcripts_location):
+        return "This function needs a dictionary of comic titles. Please " \
+               "see the documentation of the program for more info."
+    elif len(arguments) < 1:
+        return "Missing argument: query"
+    else:
+        query = " ".join(arguments)
+        titles_list, transcripts_list = get_offline_metadata()
+        matches = []
+        matches += search_transcripts(transcripts_list, query, titles_list)
+        return parse_matches(matches)
 
 #  #############################
 #  # Commands index & help     #
@@ -477,6 +524,8 @@ commands = {
     "update": command_update,
     "save": command_save,
     "search": command_search,
+    "search-titles": command_search_titles,
+    "search-transcripts": command_search_transcripts,
     "quit": command_exit,
     "exit": command_exit,
     "license": command_license,
@@ -502,12 +551,17 @@ commands_help = {
             "[argument] number of comics backward.",
     "first": "Selects the first comic. Takes no arguments.",
     "last": "Selects the last comic. Takes no arguments.",
-    "goto": "Moves to comic number [argument]. Without arguments, goes to last "
-            "comic.",
+    "goto": "Moves to comic number [argument]. Without arguments, goes to "
+            "last comic.",
     "update": "Updates latest comic. Takes no arguments.",
-    "save": "Saves selected comic to disk, with file name [arguments]. Without "
-            "arguments, saves to `[comic number].png'.",
-    "search": "Searches a database of comic titles for a specified query.",
+    "save": "Saves selected comic to disk, with file name [arguments]. "
+            "Without arguments, saves to `[comic number].png'.",
+    "search": "Searches a database of comic titles / transcripts for a "
+              "specified query.",
+    "search-titles": "Searches a database of comic titles for a specified "
+                     "query.",
+    "search-transcripts": "Searches a database of comic trascripts for a "
+                          "specified query.",
     "quit": "Closes the program. Takes no arguments.",
     "help": "Shows help. With an argument, shows help for command [argument].",
     "license": "Shows license."
@@ -533,13 +587,12 @@ def main():
         except (KeyboardInterrupt, EOFError):
             print()
             break
-        parse_input(inp)
+        print(parse_input(inp))
 
     if os.path.exists(tmpimg_location):
         shutil.rmtree(tmpimg_location)
 
 if __name__ == "__main__":
-    version = "v0.2"
     isrunning = True
     seen_comics = []
     try:
@@ -547,7 +600,7 @@ if __name__ == "__main__":
     except urllib.URLError as urllib_error:
         print(urllib_error)
         sys.exit(1)
-    cur_max_comic = json.loads(response_.read())['num']
+    cur_max_comic = json.loads(response_.read().decode())['num']
     response_.close()
     sel_comic = cur_max_comic
     main()
