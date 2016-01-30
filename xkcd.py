@@ -58,7 +58,7 @@ display_cmd = "display %s"  # command used to display images, %s is file path
 html_renderer = "w3m -dump -T text/html -O utf-8"  # html to text renderer
 tmpimg_location = "/tmp/xkcd/"  # remember trailing (back)slash
 save_location = os.getenv("HOME") + "/Pictures/"  # Default save location
-titles_location = "/usr/share/xkcd/titles.txt"  # Location to store comic titles
+titles_location = "/usr/share/xkcd/titles.txt"  # Location to store titles
 transcripts_location = "/usr/share/xkcd/transcripts.txt"  # ^ for transcripts
 alt_texts_location = "/usr/share/xkcd/alt_texts.txt"  # ^^ for title texts
 # Disable if you are using windows / don't know what is the program "less"
@@ -197,7 +197,8 @@ def display_img(comic):
 def display_text(comic):
     response = get_url(api_url % comic, return_how_much=1)
     if response[1] != 200:
-        return "Something might've gone wrong (response code: %s)" % response[1]
+        return "Something might've gone wrong (response code: %s)" % \
+               response[1]
     content = response[0]
     output = get_printable_data(content)
     return print_long_text(output)
@@ -444,8 +445,8 @@ Use `help [command]' to get help."""
 
 def command_search(*arguments):
     if not os.path.exists(titles_location):
-        return "This function needs a dictionary of comic titles. Please see " \
-               "the documentation of the program for more info."
+        return "This function needs a dictionary of comic titles. Please " \
+               "see the documentation of the program for more info."
     elif len(arguments) < 1:
         return "Missing argument: query"
     else:
@@ -502,11 +503,11 @@ commands_help = {
             "[argument] number of comics backward.",
     "first": "Selects the first comic. Takes no arguments.",
     "last": "Selects the last comic. Takes no arguments.",
-    "goto": "Moves to comic number [argument]. Without arguments, goes to last "
-            "comic.",
+    "goto": "Moves to comic number [argument]. Without arguments, goes to "
+            "last comic.",
     "update": "Updates latest comic. Takes no arguments.",
-    "save": "Saves selected comic to disk, with file name [arguments]. Without "
-            "arguments, saves to `[comic number].png'.",
+    "save": "Saves selected comic to disk, with file name [arguments]. "
+            "Without arguments, saves to `[comic number].png'.",
     "search": "Searches a database of comic titles for a specified query.",
     "quit": "Closes the program. Takes no arguments.",
     "help": "Shows help. With an argument, shows help for command [argument].",
