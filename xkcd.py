@@ -379,7 +379,7 @@ def command_update(*arguments):
     global sel_comic, cur_max_comic
     output = ""
     response = get_url(api_url % "")
-    new_max_comic = json.loads(response)['num']
+    new_max_comic = json.loads(response.decode('utf-8'))['num']
     if new_max_comic > cur_max_comic:
         if cur_max_comic + 1 == new_max_comic:
             output += "1 new comic!\n"
