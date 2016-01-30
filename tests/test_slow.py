@@ -4,52 +4,13 @@ import unittest
 import shutil
 import os
 import sys
+import random
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import xkcd
 
 
-def which(program):
-    import os
-
-    def is_exe(filepath):
-        return os.path.isfile(filepath) and os.access(filepath, os.X_OK)
-
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-
-    return None
-
-
-class TestInternetRequiringCommands(unittest.TestCase):
-
-    def test_command_display(self):
-        xkcd.use_less = False
-        result = xkcd.command_display(1)
-        expected_result = """\
-Barrel - Part 1
-Release date: 2006-1-1
-[[A boy sits in a barrel which is floating in an ocean.]]
-Boy: I wonder where I'll float next?
-[[The barrel drifts into the distance. Nothing else can be seen.]]
-{{Alt: Don't we all.}}\
-"""
-        self.assertEqual(result, expected_result)
-
-    @unittest.skipUnless(which(xkcd.html_renderer.split(" ")[0]),
-                         "Renderer not found")
-    def test_command_explain(self):
-        xkcd.use_less = False
-        result = xkcd.command_explain(1000)
-        expected_result = """\
+comic_1000_transcript = """\
 Explanation
 
 This comic is the 1000th comic shown on xkcd, including 404: Not Found,
@@ -74,7 +35,45 @@ can equate to feeling loved.
 1000 comics binary.png
 
 """
+
+
+class TestInternetRequiringCommands(unittest.TestCase):
+
+    def test_command_display(self):
+        xkcd.use_less = False
+        result = xkcd.command_display(1)
+        expected_result = """\
+Barrel - Part 1
+Release date: 2006-1-1
+[[A boy sits in a barrel which is floating in an ocean.]]
+Boy: I wonder where I'll float next?
+[[The barrel drifts into the distance. Nothing else can be seen.]]
+{{Alt: Don't we all.}}\
+"""
         self.assertEqual(result, expected_result)
+
+    @unittest.skipUnless(os.path.exists(xkcd.html_renderer[0]),
+                         "Renderer not found")
+    def test_command_explain(self):
+        xkcd.use_less = False
+        xkcd.sel_comic = 1000
+        result = xkcd.command_explain()
+        expected_result = comic_1000_transcript
+        self.assertEqual(result, expected_result)
+
+    def test_command_explain_with_arg(self):
+        xkcd.use_less = False
+        result = xkcd.command_explain(1000)
+        expected_result = comic_1000_transcript
+        self.assertEqual(result, expected_result)
+
+    def test_command_explain_invalidRenderer(self):
+        renderer = xkcd.html_renderer
+        xkcd.html_renderer = "this_is_a_fake_command"
+        output = xkcd.command_explain()
+        expected_output = "HTML renderer not found"
+        xkcd.html_renderer = renderer
+        self.assertEqual(output, expected_output)
 
     def test_command_save(self):
         xkcd.sel_comic = 1000
@@ -90,6 +89,49 @@ can equate to feeling loved.
         self.assertEqual(content, correct_content)
         shutil.rmtree(xkcd.tmpimg_location)
         os.remove("1000.png")
+
+    @unittest.skipIf(sys.version_info[0] < 3, "Py3 random != Py2 random")
+    def test_command_random_display_py3(self):
+        xkcd.use_less = False
+        random.seed(1000)
+        xkcd.cur_max_comic = 1000
+        xkcd.sel_comic = 1
+        output = xkcd.command_random("-f", "-d")
+        expected_output = """\
+debian-main
+Release date: 2010-9-24
+<<AAAAAAAA>>
+[[A swarm of insects cover a computer and a person.  The person is leaning \
+back on their chair, flailing to get away.]]
+
+My package made it into Debian-main because it looked innocuous enough; no \
+one noticed "locusts" in the dependency list.
+
+{{Title text: dpkg: error processing package (--purge): subprocess \
+pre-removal script returned error exit 163: \
+OH_GOD_THEYRE_INSIDE_MY_CLOTHES}}"""
+        self.assertEqual(output, expected_output)
+
+    @unittest.skipIf(sys.version_info[0] > 2, "Py3 random != Py2 random")
+    def test_command_random_display_py2(self):
+        xkcd.use_less = False
+        random.seed(666)
+        xkcd.cur_max_comic = 1000
+        xkcd.sel_comic = 1
+        output = xkcd.command_random("-f", "-d")
+        expected_output = """\
+Frustration
+Release date: 2008-8-1
+[[Bra with rubik's cube closure.]]
+{{title text: 'Don't worry, I can do it in under a minute.' \
+'Yes, I've noticed.'}}"""
+        self.assertEqual(output, expected_output)
+
+    def test_command_update(self):
+        xkcd.cur_max_comic = 1000
+        output = xkcd.command_update()
+        generic_output = " new comics!"
+        self.assertEqual(output[-12:], generic_output)
 
 if __name__ == '__main__':
     unittest.main()

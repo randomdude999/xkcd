@@ -68,11 +68,19 @@ class TestCommandFirstLast(unittest.TestCase):
         xkcd.command_first()
         self.assertEqual(xkcd.sel_comic, 1)
 
+    def test_command_first_arg(self):
+        output = xkcd.command_first("test")
+        self.assertEqual(output, "Command does not take arguments")
+
     def test_command_last(self):
         xkcd.sel_comic = 1
         xkcd.cur_max_comic = 1000
         xkcd.command_last()
         self.assertEqual(xkcd.sel_comic, xkcd.cur_max_comic)
+
+    def test_command_last_arg(self):
+        output = xkcd.command_first("test")
+        self.assertEqual(output, "Command does not take arguments")
 
 
 class TestCommandGoto(unittest.TestCase):
@@ -95,6 +103,12 @@ class TestCommandGoto(unittest.TestCase):
         xkcd.command_goto(9001)
         self.assertEqual(xkcd.sel_comic, xkcd.cur_max_comic)
 
+    def test_command_goto_invalid_arg(self):
+        xkcd.sel_comic = 666
+        xkcd.cur_max_comic = 1000
+        xkcd.command_goto("test")
+        self.assertEqual(xkcd.sel_comic, xkcd.cur_max_comic)
+
 
 class TestCommandsExitLicense(unittest.TestCase):
 
@@ -102,6 +116,10 @@ class TestCommandsExitLicense(unittest.TestCase):
         xkcd.isrunning = True
         xkcd.command_exit()
         self.assertEqual(xkcd.isrunning, False)
+
+    def test_command_exit_arg(self):
+        output = xkcd.command_exit("test")
+        self.assertEqual(output, "Command does not take arguments")
 
     def test_command_license(self):
         expected_output = """\
@@ -120,6 +138,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>."""
         output = xkcd.command_license()
         self.assertEqual(output, expected_output)
+
+    def test_command_license_arg(self):
+        output = xkcd.command_license("test")
+        self.assertEqual(output, "Command does not take arguments")
 
 
 class TestCommandHelp(unittest.TestCase):
@@ -160,6 +182,14 @@ class TestCommandRandom(unittest.TestCase):
         random.seed(666)
         xkcd.command_random("-f")
         self.assertEqual(xkcd.sel_comic, randint)
+
+    def test_command_random_unique(self):
+        xkcd.seen_comics = list(range(1, 1000))
+        xkcd.cur_max_comic = 1000
+        xkcd.seen_comics.remove(404)
+        xkcd.sel_comic = 1
+        xkcd.command_random()
+        self.assertEqual(xkcd.sel_comic, 1000)
 
 if __name__ == '__main__':
     unittest.main()

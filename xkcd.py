@@ -55,7 +55,7 @@ except ImportError:
 
 prompt = "xkcd [%s]> "  # the %s is current comic number
 display_cmd = "display %s"  # command used to display images, %s is file path
-html_renderer = "w3m -dump -T text/html -O utf-8"  # html to text renderer
+html_renderer = ("/usr/bin/w3m", "-dump", "-T", "text/html", "-O", "utf-8")
 tmpimg_location = "/tmp/xkcd/"  # remember trailing (back)slash
 save_location = os.getenv("HOME") + "/Pictures/"  # Default save location
 titles_location = "/usr/share/xkcd/titles.txt"  # Location to store titles
@@ -206,7 +206,7 @@ def display_text(comic):
 
 def random_unique():
     global seen_comics
-    avail = list(range(1, cur_max_comic))
+    avail = list(range(1, cur_max_comic + 1))
     for x in seen_comics:
         avail.remove(x)
     avail.remove(404)
@@ -298,9 +298,9 @@ def command_explain(*arguments):
     location = explainxkcd_url % comic
     content = get_url(location)
     try:
-        proc = Popen(html_renderer, shell=True, stdin=PIPE, stdout=PIPE)
-    except OSError as err:
-        return err
+        proc = Popen(html_renderer, stdin=PIPE, stdout=PIPE)
+    except OSError:
+        return "HTML renderer not found"
     content = proc.communicate(content)[0]
     content = "".join(content.decode('utf-8').split("[edit] ")[1:-1])
     return print_long_text(content)
