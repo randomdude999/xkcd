@@ -60,7 +60,6 @@ tmpimg_location = "/tmp/xkcd/"  # remember trailing (back)slash
 save_location = os.getenv("HOME") + "/Pictures/"  # Default save location
 titles_location = "/usr/share/xkcd/titles.txt"  # Location to store titles
 transcripts_location = "/usr/share/xkcd/transcripts.txt"  # ^ for transcripts
-alt_texts_location = "/usr/share/xkcd/alt_texts.txt"  # ^^ for title texts
 # Disable if you are using windows / don't know what is the program "less"
 use_less = True
 
@@ -139,8 +138,11 @@ def get_offline_metadata():
 def search_titles(titles_list, query):
     matches = []
     for x in titles_list:
-        if query.lower() in ":".join(x.split(":")[1:]).lower():
-            matches.append(x)
+        try:
+            if query.lower() in eval(":".join(x.split(":")[1:])).lower():
+                matches.append(x)
+        except SyntaxError:
+            pass
     return matches
 
 
@@ -226,20 +228,16 @@ def update_search_db():
     if cur_max_comic > last_comic:
         title_file = open(titles_location, 'a')
         transcripts_file = open(transcripts_location, 'a')
-        alt_texts_file = open(alt_texts_location, 'a')
         for x in range(last_comic + 1, cur_max_comic + 1):
             with urllib.urlopen(api_url % x) as response:
                 resp_json = json.loads(response.read())
                 title = repr(resp_json['title'])
                 number = resp_json['num']
                 transcript = repr(resp_json['transcript'])
-                alt_text = repr(resp_json['alt'])
                 title_file.write("%s:%s\n" % (number, title))
                 transcripts_file.write("%s:%s\n" % (number, transcript))
-                alt_texts_file.write("%s:%s\n" % (number, alt_text))
         title_file.close()
         transcripts_file.close()
-        alt_texts_file.close()
     return output
 
 
@@ -444,7 +442,8 @@ Use `help [command]' to get help."""
 
 
 def command_search(*arguments):
-    if not os.path.exists(titles_location):
+    if not os.path.exists(titles_location) or not \
+            os.path.exists(transcripts_location):
         return "This function needs a dictionary of comic titles. Please " \
                "see the documentation of the program for more info."
     elif len(arguments) < 1:
@@ -455,9 +454,50 @@ def command_search(*arguments):
         matches = []
         matches += search_titles(titles_list, query)
         matches += search_transcripts(transcripts_list, query, titles_list)
+        matches = list(set(matches))
         output = "Matches:\n"
         for x in matches:
-            result = (x.split(":")[0], ":".join(x.split(":")[1:]))
+            result = (x.split(":")[0], eval(":".join(x.split(":")[1:])))
+            output += "(#%s) %s\n" % result
+        return output
+
+
+def command_search_titles(*arguments):
+    if not os.path.exists(titles_location):
+        return "This function needs a dictionary of comic titles. Please " \
+               "see the documentation of the program for more info."
+    elif len(arguments) < 1:
+        return "Missing argument: query"
+    else:
+        query = " ".join(arguments)
+        titles_list, transcripts_list = get_offline_metadata()
+        matches = []
+        matches += search_titles(titles_list, query)
+        matches = list(set(matches))
+        output = "Matches:\n"
+        for x in matches:
+            result = (x.split(":")[0], eval(":".join(x.split(":")[1:])))
+            output += "(#%s) %s\n" % result
+        return output
+
+
+def command_search_transcripts(*arguments):
+
+    if not os.path.exists(titles_location) or not \
+            os.path.exists(transcripts_location):
+        return "This function needs a dictionary of comic titles. Please " \
+               "see the documentation of the program for more info."
+    elif len(arguments) < 1:
+        return "Missing argument: query"
+    else:
+        query = " ".join(arguments)
+        titles_list, transcripts_list = get_offline_metadata()
+        matches = []
+        matches += search_transcripts(transcripts_list, query, titles_list)
+        matches = list(set(matches))
+        output = "Matches:\n"
+        for x in matches:
+            result = (x.split(":")[0], eval(":".join(x.split(":")[1:])))
             output += "(#%s) %s\n" % result
         return output
 
@@ -478,6 +518,8 @@ commands = {
     "update": command_update,
     "save": command_save,
     "search": command_search,
+    "search-titles": command_search_titles,
+    "search-transcripts": command_search_transcripts,
     "quit": command_exit,
     "exit": command_exit,
     "license": command_license,
@@ -508,7 +550,12 @@ commands_help = {
     "update": "Updates latest comic. Takes no arguments.",
     "save": "Saves selected comic to disk, with file name [arguments]. "
             "Without arguments, saves to `[comic number].png'.",
-    "search": "Searches a database of comic titles for a specified query.",
+    "search": "Searches a database of comic titles / transcripts for a "
+              "specified query.",
+    "search-titles": "Searches a database of comic titles for a specified "
+                     "query.",
+    "search-transcripts": "Searches a database of comic trascripts for a "
+                          "specified query.",
     "quit": "Closes the program. Takes no arguments.",
     "help": "Shows help. With an argument, shows help for command [argument].",
     "license": "Shows license."

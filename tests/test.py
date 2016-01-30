@@ -75,9 +75,9 @@ Boy: I wonder where I'll float next?
         renderer = xkcd.html_renderer
         xkcd.html_renderer = "this_is_a_fake_command"
         output = xkcd.command_explain()
-        expected_output = "HTML renderer not found"
+        excepted_output = "HTML renderer not found"
         xkcd.html_renderer = renderer
-        self.assertEqual(output, expected_output)
+        self.assertEqual(output, excepted_output)
 
     def test_command_save(self):
         xkcd.sel_comic = 1000
@@ -101,7 +101,7 @@ Boy: I wonder where I'll float next?
         xkcd.cur_max_comic = 1000
         xkcd.sel_comic = 1
         output = xkcd.command_random("-f", "-d")
-        expected_output = """\
+        excepted_output = """\
 debian-main
 Release date: 2010-9-24
 <<AAAAAAAA>>
@@ -114,7 +114,7 @@ one noticed "locusts" in the dependency list.
 {{Title text: dpkg: error processing package (--purge): subprocess \
 pre-removal script returned error exit 163: \
 OH_GOD_THEYRE_INSIDE_MY_CLOTHES}}"""
-        self.assertEqual(output, expected_output)
+        self.assertEqual(output, excepted_output)
 
     @unittest.skipIf(sys.version_info[0] > 2, "Py3 random != Py2 random")
     def test_command_random_display_py2(self):
@@ -123,13 +123,13 @@ OH_GOD_THEYRE_INSIDE_MY_CLOTHES}}"""
         xkcd.cur_max_comic = 1000
         xkcd.sel_comic = 1
         output = xkcd.command_random("-f", "-d")
-        expected_output = """\
+        excepted_output = """\
 Frustration
 Release date: 2008-8-1
 [[Bra with rubik's cube closure.]]
 {{title text: 'Don't worry, I can do it in under a minute.' \
 'Yes, I've noticed.'}}"""
-        self.assertEqual(output, expected_output)
+        self.assertEqual(output, excepted_output)
 
     def test_command_update(self):
         xkcd.cur_max_comic = 1000
@@ -249,7 +249,7 @@ class TestCommandsExitLicense(unittest.TestCase):
         self.assertEqual(output, "Command does not take arguments")
 
     def test_command_license(self):
-        expected_output = """\
+        excepted_output = """\
 Copyright © 2016 randomdude999
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -264,7 +264,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>."""
         output = xkcd.command_license()
-        self.assertEqual(output, expected_output)
+        self.assertEqual(output, excepted_output)
 
     def test_command_license_arg(self):
         output = xkcd.command_license("test")
@@ -274,7 +274,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 class TestCommandHelp(unittest.TestCase):
 
     def test_command_help_noargs(self):
-        expected_output = """
+        excepted_output = """
 Use `next', `prev', `first', `last', `goto' and `random' to select comics.
 Use `display' to show comics' transcriptions.
 Use `display img' to display images (requires imagemagick and a running X
@@ -285,18 +285,18 @@ Use `save' to save comics to disk.
 Use `quit' or `exit' to exit.
 Use `help [command]' to get help."""
         output = xkcd.command_help()
-        self.assertEqual(output, expected_output)
+        self.assertEqual(output, excepted_output)
 
     def test_command_help_progs(self):
         for command in xkcd.commands_help:
-            expected_output = xkcd.commands_help[command]
+            excepted_output = xkcd.commands_help[command]
             output = xkcd.command_help(command)
-            self.assertEqual(output, expected_output)
+            self.assertEqual(output, excepted_output)
 
     def test_command_help_uknowncommand(self):
-        expected_output = "Unknown command."
+        excepted_output = "Unknown command."
         output = xkcd.command_help("thisisnotarealcommand")
-        self.assertEqual(output, expected_output)
+        self.assertEqual(output, excepted_output)
 
 
 class TestCommandRandom(unittest.TestCase):
@@ -317,6 +317,51 @@ class TestCommandRandom(unittest.TestCase):
         xkcd.sel_comic = 1
         xkcd.command_random()
         self.assertEqual(xkcd.sel_comic, 1000)
+
+
+class TestCommandSearch(unittest.TestCase):
+
+    def setUp(self):
+        xkcd.titles_location = "titles.txt"
+        xkcd.transcripts_location = "transcripts.txt"
+
+    def test_command_search_noargs(self):
+        output = xkcd.command_search()
+        excepted_output = "Missing argument: query"
+        self.assertEqual(output, excepted_output)
+
+    def test_command_search_title(self):
+        output = xkcd.command_search_titles("barrel")
+        excepted_outputs = ["Matches:", "(#31) Barrel - Part 5",
+                            "(#11) Barrel - Part 2", "(#1) Barrel - Part 1",
+                            "(#22) Barrel - Part 3", "(#25) Barrel - Part 4"]
+        for x in excepted_outputs:
+            self.assertTrue(x in output)
+
+    def test_command_search_transcripts(self):
+        output = xkcd.command_search_transcripts("asdf")
+        excepted_output = "Matches:\n(#1296) Git Commit\n"
+        self.assertEqual(output, excepted_output)
+
+    def test_command_search_no_titles(self):
+        excepted_output = "This function needs a dictionary of comic titles." \
+                          " Please see the documentation of the program for" \
+                          " more info."
+        old_titles = xkcd.titles_location
+        xkcd.titles_location = "AAA"
+        output = xkcd.command_search()
+        xkcd.titles_location = old_titles
+        self.assertEqual(output, excepted_output)
+
+    def test_command_search_titles_noargs(self):
+        excepted_output = "Missing argument: query"
+        output = xkcd.command_search_titles()
+        self.assertEqual(output, excepted_output)
+
+    def test_command_search_transcripts_noargs(self):
+        excepted_output = "Missing argument: query"
+        output = xkcd.command_search_transcripts()
+        self.assertEqual(output, excepted_output)
 
 if __name__ == '__main__':
     unittest.main()

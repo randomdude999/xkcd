@@ -11,19 +11,27 @@ If you see a green "build | passing" near the top, that means the program is ful
 
 ### Platform-independent
 
-Download / `git clone` the repository. If you are not a developer, you can delete all files except `xkcd.py`.
+Download / `git clone` the repository. If you are not a developer, you can delete all files except `xkcd.py` and `search.zip`.
 
 ### Linux
 
 (Should work in OSX too)
 
 Open a terminal. Then make sure you are in the directory you downloaded.  
-Type:  
-`sudo cp xkcd.py /usr/local/bin/xkcd`  
+Type:
+
+    sudo cp xkcd.py /usr/local/bin/xkcd
+
 This will copy `xkcd.py` to `/usr/local/bin` under the name `xkcd`.
+
+If you also want searching:
+
+    unzip search.zip
+    sudo mkdir -p /usr/share/xkcd
+    sudo cp titles.txt transcripts.txt /usr/share/xkcd
 
 Now type `xkcd` to test if it worked.
 
 ## Tests
 
-This script uses the standard `unittest`. To test, `cd tests` and run `test.py`.
+This script uses the standard `unittest`. To test, `cd tests` and run `test.py`. Note: testing search functions requires that the `search.zip` file be unpacked to the tests directory.
