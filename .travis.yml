@@ -9,6 +9,6 @@ install:
 script:
   - cd tests
   - unzip ../search.zip -d .
-  - coverage run test.py -v
+  - coverage run --omit test.py test.py -v
 after_success:
   - coveralls

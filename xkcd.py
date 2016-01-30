@@ -85,22 +85,23 @@ def print_long_text(text):
         return text
 
 
-def get_url(url, return_how_much=0):
+def get_url(url, return_status_code=False):
     req = urllib.Request(url)
     req.add_header("User-Agent", "xkcd/0.1 (by randomdude999 <just.so.you.can."
                                  "email.me@gmail.com>)")
     try:
         response = urllib.urlopen(req)
-    except (IOError, urllib.URLError) as err:
-        return err
-    content = response.read()
-    response.close()
-    if return_how_much == 0:
+    except urllib.HTTPError as err:
+        content = err.read()
+        response_code = err.getcode()
+    else:
+        content = response.read()
+        response_code = response.getcode()
+        response.close()
+    if return_status_code:
+        return content, response_code
+    else:
         return content
-    elif return_how_much == 1:
-        return content, response.getcode()
-    elif return_how_much > 1:
-        return content, response
 
 
 def get_img(num):
@@ -110,7 +111,7 @@ def get_img(num):
         img_source = comic_data['img']
     except (KeyError, ValueError):
         return "Something went wrong when decoding JSON\nraw text:\n%s" % data
-    result = get_url(img_source, return_how_much=1)
+    result = get_url(img_source, True)
     if result[1] == 404:
         return "No image for comic found (maybe it's interactive?)"
     else:
@@ -197,7 +198,7 @@ def display_img(comic):
 
 
 def display_text(comic):
-    response = get_url(api_url % comic, return_how_much=1)
+    response = get_url(api_url % comic, True)
     if response[1] != 200:
         return "Something might've gone wrong (response code: %s)" % \
                response[1]
@@ -246,12 +247,12 @@ def create_tmpfile_if_not_exist(comic):
         get_img(comic)
 
 
-def get_amount_from_args(*arguments):
-    if len(arguments[0]) == 0:
+def get_amount_from_args(arguments):
+    if len(arguments) == 0:
         amount = 1
     else:
         try:
-            amount = int(arguments[0][0])
+            amount = int(arguments[0])
         except ValueError:
             amount = 1
     return amount
@@ -313,7 +314,7 @@ def command_save(*arguments):
     create_tmpfile_if_not_exist(sel_comic)
     try:
         shutil.copy(tmpimg_location + "%s.png" % sel_comic, location)
-    except OSError as err:
+    except IOError as err:
         return err
     return output
 

@@ -43,7 +43,7 @@ class TestInternetRequiringCommands(unittest.TestCase):
     def test_command_display(self):
         xkcd.use_less = False
         result = xkcd.command_display(1)
-        expected_result = """\
+        excepted_result = """\
 Barrel - Part 1
 Release date: 2006-1-1
 [[A boy sits in a barrel which is floating in an ocean.]]
@@ -51,7 +51,7 @@ Boy: I wonder where I'll float next?
 [[The barrel drifts into the distance. Nothing else can be seen.]]
 {{Alt: Don't we all.}}\
 """
-        self.assertEqual(result, expected_result)
+        self.assertEqual(result, excepted_result)
 
     @unittest.skipUnless(os.path.exists(xkcd.html_renderer[0]),
                          "Renderer not found")
@@ -59,16 +59,16 @@ Boy: I wonder where I'll float next?
         xkcd.use_less = False
         xkcd.sel_comic = 1000
         result = xkcd.command_explain()
-        expected_result = comic_1000_transcript
-        self.assertEqual(result, expected_result)
+        excepted_result = comic_1000_transcript
+        self.assertEqual(result, excepted_result)
 
     @unittest.skipUnless(os.path.exists(xkcd.html_renderer[0]),
                          "Renderer not found")
     def test_command_explain_with_arg(self):
         xkcd.use_less = False
         result = xkcd.command_explain(1000)
-        expected_result = comic_1000_transcript
-        self.assertEqual(result, expected_result)
+        excepted_result = comic_1000_transcript
+        self.assertEqual(result, excepted_result)
 
     def test_command_explain_invalidRenderer(self):
         xkcd.sel_comic = 1
@@ -234,6 +234,12 @@ class TestCommandGoto(unittest.TestCase):
         xkcd.sel_comic = 666
         xkcd.cur_max_comic = 1000
         xkcd.command_goto("test")
+        self.assertEqual(xkcd.sel_comic, xkcd.cur_max_comic)
+
+    def test_command_goto_noargs(self):
+        xkcd.sel_comic = 666
+        xkcd.cur_max_comic = 1000
+        xkcd.command_goto()
         self.assertEqual(xkcd.sel_comic, xkcd.cur_max_comic)
 
 

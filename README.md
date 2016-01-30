@@ -1,5 +1,5 @@
 # xkcd
-[![Build Status](https://travis-ci.org/randomdude999/xkcd.svg?branch=master)](https://travis-ci.org/randomdude999/xkcd) [![Coverage Status](https://coveralls.io/repos/github/randomdude999/xkcd/badge.svg?branch=devel)](https://coveralls.io/github/randomdude999/xkcd?branch=master) [![Code Climate](https://codeclimate.com/github/randomdude999/xkcd/badges/gpa.svg)](https://codeclimate.com/github/randomdude999/xkcd)
+[![Build Status](https://travis-ci.org/randomdude999/xkcd.svg?branch=master)](https://travis-ci.org/randomdude999/xkcd) [![Coverage Status](https://coveralls.io/repos/github/randomdude999/xkcd/badge.svg?branch=master)](https://coveralls.io/github/randomdude999/xkcd?branch=master) [![Code Climate](https://codeclimate.com/github/randomdude999/xkcd/badges/gpa.svg?branch=master)](https://codeclimate.com/github/randomdude999/xkcd)
 
 A command line xkcd client.
 
