@@ -9,6 +9,5 @@ install:
 script:
   - cd tests
   - coverage run test.py -v
-  - coverage run test_slow.py -v
 after_success:
   - coveralls
