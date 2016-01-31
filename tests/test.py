@@ -6,6 +6,7 @@ import random
 import os
 import sys
 import shutil
+import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -37,6 +38,15 @@ can equate to feeling loved.
 
 """
 
+comic_1_transcript = """\
+Barrel - Part 1
+Release date: 2006-1-1
+[[A boy sits in a barrel which is floating in an ocean.]]
+Boy: I wonder where I'll float next?
+[[The barrel drifts into the distance. Nothing else can be seen.]]
+{{Alt: Don't we all.}}\
+"""
+
 program_license = """\
 Copyright © 2016 randomdude999
 This program is free software: you can redistribute it and/or modify
@@ -58,15 +68,15 @@ class TestInternetRequiringCommands(unittest.TestCase):
     def test_command_display(self):
         xkcd.use_less = False
         result = xkcd.command_display(1)
-        excepted_result = """\
-Barrel - Part 1
-Release date: 2006-1-1
-[[A boy sits in a barrel which is floating in an ocean.]]
-Boy: I wonder where I'll float next?
-[[The barrel drifts into the distance. Nothing else can be seen.]]
-{{Alt: Don't we all.}}\
-"""
+        excepted_result = comic_1_transcript
         self.assertEqual(result, excepted_result)
+
+    def test_command_display_invalid_arg(self):
+        xkcd.use_less = False
+        xkcd.sel_comic = 1
+        result = xkcd.command_display("test")
+        expected_result = comic_1_transcript
+        self.assertEqual(result, expected_result)
 
     @unittest.skipUnless(os.path.exists(xkcd.html_renderer[0]),
                          "Renderer not found")
@@ -115,14 +125,10 @@ Boy: I wonder where I'll float next?
         excepted_output = "No image for comic found (maybe it's interactive?)"
         self.assertEqual(output, excepted_output)
 
-    @unittest.skipIf(sys.version_info[0] < 3, "Py3 random != Py2 random")
-    def test_command_random_display_py3(self):
-        xkcd.use_less = False
-        random.seed(1000)
-        xkcd.cur_max_comic = 1000
-        xkcd.sel_comic = 1
-        output = xkcd.command_random("-f", "-d")
-        excepted_output = """\
+    def test_command_random_display(self):
+        if sys.version_info[0] == 3:
+            random_seed = 1000
+            expected_output = """\
 debian-main
 Release date: 2010-9-24
 <<AAAAAAAA>>
@@ -135,28 +141,42 @@ one noticed "locusts" in the dependency list.
 {{Title text: dpkg: error processing package (--purge): subprocess \
 pre-removal script returned error exit 163: \
 OH_GOD_THEYRE_INSIDE_MY_CLOTHES}}"""
-        self.assertEqual(output, excepted_output)
-
-    @unittest.skipIf(sys.version_info[0] > 2, "Py3 random != Py2 random")
-    def test_command_random_display_py2(self):
-        xkcd.use_less = False
-        random.seed(666)
-        xkcd.cur_max_comic = 1000
-        xkcd.sel_comic = 1
-        output = xkcd.command_random("-f", "-d")
-        excepted_output = """\
+        else:
+            random_seed = 666
+            expected_output = """\
 Frustration
 Release date: 2008-8-1
 [[Bra with rubik's cube closure.]]
 {{title text: 'Don't worry, I can do it in under a minute.' \
 'Yes, I've noticed.'}}"""
-        self.assertEqual(output, excepted_output)
+        xkcd.use_less = False
+        random.seed(random_seed)
+        xkcd.cur_max_comic = 1000
+        xkcd.sel_comic = 1
+        output = xkcd.command_random("-f", "-d")
+        self.assertEqual(output, expected_output)
 
     def test_command_update(self):
         xkcd.cur_max_comic = 1000
         output = xkcd.command_update()
         generic_output = " new comics!\n"
         self.assertEqual(output[-13:], generic_output)
+
+    def test_command_update_1_comic(self):
+        response = xkcd.get_url(xkcd.api_url % "")
+        new_max_comic = json.loads(response.decode('utf-8'))['num'] - 1
+        xkcd.cur_max_comic = new_max_comic
+        output = xkcd.command_update()
+        expected_output = "1 new comic!\n"
+        self.assertEqual(output, expected_output)
+
+    def test_command_update_no_new_comics(self):
+        response = xkcd.get_url(xkcd.api_url % "")
+        max_comic = json.loads(response.decode('utf-8'))['num']
+        xkcd.cur_max_comic = max_comic
+        output = xkcd.command_update()
+        expected_output = "No new comics.\n"
+        self.assertEqual(output, expected_output)
 
 
 class TestCommandNext(unittest.TestCase):
@@ -227,7 +247,7 @@ class TestCommandFirstLast(unittest.TestCase):
         self.assertEqual(xkcd.sel_comic, xkcd.cur_max_comic)
 
     def test_command_last_arg(self):
-        output = xkcd.command_first("test")
+        output = xkcd.command_last("test")
         self.assertEqual(output, "Command does not take arguments")
 
 
@@ -312,6 +332,12 @@ Use `help [command]' to get help."""
         output = xkcd.command_help("thisisnotarealcommand")
         self.assertEqual(output, excepted_output)
 
+    def test_command_help_nodoc(self):
+        xkcd.commands['test'] = "Test!"
+        output = xkcd.command_help("test")
+        expected_output = "Command exists, but has no documentation."
+        self.assertEqual(output, expected_output)
+
 
 class TestCommandRandom(unittest.TestCase):
 
@@ -339,10 +365,17 @@ class TestCommandSearch(unittest.TestCase):
         xkcd.titles_location = "titles.txt"
         xkcd.transcripts_location = "transcripts.txt"
 
-    def test_command_search_noargs(self):
-        output = xkcd.command_search()
-        excepted_output = "Missing argument: query"
-        self.assertEqual(output, excepted_output)
+    def test_command_search(self):
+        output = xkcd.command_search("barrel")
+        expected_outputs = ["Matches:", "(#1) Barrel - Part 1",
+                            "(#11) Barrel - Part 2", "(#374) Journal",
+                            "(#25) Barrel - Part 4", "(#960) Subliminal",
+                            "(#728) iPad", "(#22) Barrel - Part 3",
+                            "(#1455) Trolley Problem", "(#31) Barrel - Part 5",
+                            "(#746) Birth"]
+
+        for x in expected_outputs:
+            self.assertTrue(x in output)
 
     def test_command_search_title(self):
         output = xkcd.command_search_titles("barrel")
@@ -357,14 +390,9 @@ class TestCommandSearch(unittest.TestCase):
         excepted_output = "Matches:\n(#1296) Git Commit\n"
         self.assertEqual(output, excepted_output)
 
-    def test_command_search_no_titles(self):
-        excepted_output = "This function needs a dictionary of comic titles." \
-                          " Please see the documentation of the program for" \
-                          " more info."
-        old_titles = xkcd.titles_location
-        xkcd.titles_location = "AAA"
+    def test_command_search_noargs(self):
         output = xkcd.command_search()
-        xkcd.titles_location = old_titles
+        excepted_output = "Missing argument: query"
         self.assertEqual(output, excepted_output)
 
     def test_command_search_titles_noargs(self):
@@ -376,6 +404,60 @@ class TestCommandSearch(unittest.TestCase):
         excepted_output = "Missing argument: query"
         output = xkcd.command_search_transcripts()
         self.assertEqual(output, excepted_output)
+
+    def test_command_search_no_titles(self):
+        excepted_output = "This function needs a dictionary of comic titles." \
+                          " Please see the documentation of the program for" \
+                          " more info."
+        old_titles = xkcd.titles_location
+        xkcd.titles_location = "AAA"
+        output = xkcd.command_search()
+        xkcd.titles_location = old_titles
+        self.assertEqual(output, excepted_output)
+
+    def test_command_search_titles_no_titles(self):
+        excepted_output = "This function needs a dictionary of comic titles." \
+                          " Please see the documentation of the program for" \
+                          " more info."
+        old_titles = xkcd.titles_location
+        xkcd.titles_location = "AAA"
+        output = xkcd.command_search_titles()
+        xkcd.titles_location = old_titles
+        self.assertEqual(output, excepted_output)
+
+    def test_command_search_transcripts_no_titles(self):
+        excepted_output = "This function needs a dictionary of comic titles." \
+                          " Please see the documentation of the program for" \
+                          " more info."
+        old_titles = xkcd.titles_location
+        xkcd.titles_location = "AAA"
+        output = xkcd.command_search_transcripts()
+        xkcd.titles_location = old_titles
+        self.assertEqual(output, excepted_output)
+
+    def test_update_search_db(self):
+        xkcd.cur_max_comic = 1
+        xkcd.command_update()
+        old_titles_loc = xkcd.titles_location
+        old_transcripts_loc = xkcd.transcripts_location
+        xkcd.titles_location = "test.txt"
+        xkcd.transcripts_location = "test2.txt"
+        fd = open("test.txt", 'w')
+        fd.write(str(xkcd.cur_max_comic - 1))
+        fd.write(":'Test'\n")
+        fd.close()
+        fd = open("test2.txt", 'w')
+        fd.write(str(xkcd.cur_max_comic - 1))
+        fd.write(":'Test'\n")
+        fd.close()
+        output = xkcd.command_update("search_db")
+        expected_output = "No new comics.\n1 comics not in title database " \
+                          "found."
+        xkcd.titles_location = old_titles_loc
+        xkcd.transcripts_location = old_transcripts_loc
+        os.remove("test.txt")
+        os.remove("test2.txt")
+        self.assertEqual(output, expected_output)
 
 
 class TestMiscFunctions(unittest.TestCase):
@@ -391,6 +473,56 @@ class TestMiscFunctions(unittest.TestCase):
         output = xkcd.parse_input(cmd)
         excepted_output = "Unknown command\n"
         self.assertEqual(output, excepted_output)
+
+    def test_get_img_invalid_comic(self):
+        output = xkcd.get_img("test")
+        expected_output = "Something went wrong when decoding JSON\nraw text:" \
+                          "\n"
+        self.assertIn(expected_output, output)
+
+    def test_parse_input_no_cmd(self):
+        output = xkcd.parse_input("")
+        expected_output = ""
+        self.assertEqual(output, expected_output)
+
+    def test_get_printable_data_invalid_data(self):
+        output = xkcd.get_printable_data("qwerty".encode())
+        expected_output = "Something went wrong when decoding JSON\nraw " \
+                          "text:\nqwerty"
+        self.assertEqual(output, expected_output)
+
+    def test_get_printable_data_no_transcript(self):
+        inp = {
+            'year': 2016,
+            'month': 1,
+            'day': 1,
+            'transcript': "",
+            'alt': "Test",
+            'title': "Test"
+        }
+        output = xkcd.get_printable_data(json.dumps(inp).encode())
+        expected_output = u"Test\nRelease date: 2016-1-1\nNo transcript " \
+                          "available yet.\n\nTitle text: \"Test\""
+        self.assertEqual(output, expected_output)
+
+    def test_display_text_404(self):
+        output = xkcd.display_text("test")
+        expected_output = "Something might've gone wrong (response code: 404)"
+        self.assertEqual(output, expected_output)
+
+    def test_get_amout_from_args_invalid_arg(self):
+        output = xkcd.get_amount_from_args("test")
+        expected_output = 1
+        self.assertEqual(output, expected_output)
+
+    def test_less_missing(self):
+        xkcd.use_less = True
+        xkcd.less_cmd = "thisisafakecmd"
+        output = xkcd.print_long_text("Test")
+        expected_output = "Test"
+        self.assertEqual(output, expected_output)
+        xkcd.use_less = False
+
 
 if __name__ == '__main__':
     unittest.main()
