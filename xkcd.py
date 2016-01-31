@@ -193,7 +193,7 @@ def get_printable_data(api_data):
         transcript = data['transcript']
     except (ValueError, KeyError):
         return "Something went wrong when decoding JSON\nraw text:\n%s" % \
-            api_data
+            api_data.decode('utf-8')
     if len(transcript) == 0:
         transcript = "No transcript available yet.\n\nTitle text: \"" + \
             data['alt'] + "\""
@@ -242,7 +242,7 @@ def update_search_db():
         transcripts_file = open(transcripts_location, 'a')
         for x in range(last_comic + 1, cur_max_comic + 1):
             response = get_url(api_url % x)
-            resp_json = json.loads(response)
+            resp_json = json.loads(response.decode('utf-8'))
             title = repr(resp_json['title'])
             number = resp_json['num']
             transcript = repr(resp_json['transcript'])
