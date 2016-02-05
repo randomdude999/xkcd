@@ -126,11 +126,8 @@ class TestInternetRequiringCommands(unittest.TestCase):
         self.assertEqual(output, excepted_output)
 
     def test_command_random_display(self):
-        if sys.version_info[0] == 3:
-            random_seed = 992
-        else:
-            random_seed = 2171
-        expected_output = comic_1000_transcript
+        random_seed = 1514
+        expected_output = comic_1_transcript
         xkcd.use_less = False
         random.seed(random_seed)
         xkcd.cur_max_comic = 1000
