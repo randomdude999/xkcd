@@ -127,34 +127,27 @@ class TestInternetRequiringCommands(unittest.TestCase):
 
     def test_command_random_display(self):
         if sys.version_info[0] == 3:
-            random_seed = 1000
-            expected_output = """\
-debian-main
-Release date: 2010-9-24
-<<AAAAAAAA>>
-[[A swarm of insects cover a computer and a person.  The person is leaning \
-back on their chair, flailing to get away.]]
-
-My package made it into Debian-main because it looked innocuous enough; no \
-one noticed "locusts" in the dependency list.
-
-{{Title text: dpkg: error processing package (--purge): subprocess \
-pre-removal script returned error exit 163: \
-OH_GOD_THEYRE_INSIDE_MY_CLOTHES}}"""
+            random_seed = 992
         else:
-            random_seed = 666
-            expected_output = """\
-Frustration
-Release date: 2008-8-1
-[[Bra with rubik's cube closure.]]
-{{title text: 'Don't worry, I can do it in under a minute.' \
-'Yes, I've noticed.'}}"""
+            random_seed = 2171
+        expected_output = comic_1000_transcript
         xkcd.use_less = False
         random.seed(random_seed)
         xkcd.cur_max_comic = 1000
         xkcd.sel_comic = 1
         output = xkcd.command_random("-f", "-d")
         self.assertEqual(output, expected_output)
+
+    def test_command_random_display_img(self):
+        if sys.version_info[0] == 3:
+            random_seed = 992
+        else:
+            random_seed = 2171
+        if sys.platform.startswith("win"):
+            xkcd.display_cmd = "copy %s 1000.png"
+        elif os.name == "posix":
+            xkcd.display_cmd = "cp %s 1000.png"
+        random.seed(random_seed)
 
     def test_command_update(self):
         xkcd.cur_max_comic = 1000
@@ -473,6 +466,14 @@ class TestMiscFunctions(unittest.TestCase):
         output = xkcd.parse_input(cmd)
         excepted_output = "Unknown command\n"
         self.assertEqual(output, excepted_output)
+
+    def test_func_parse_input_error(self):
+        def cmd(*arguments):
+            raise Exception(arguments)
+        xkcd.commands['test'] = cmd
+        out = xkcd.parse_input('test Test')
+        expected_output = "('Test',)"
+        self.assertEqual(out, expected_output)
 
     def test_get_img_invalid_comic(self):
         output = xkcd.get_img("test")

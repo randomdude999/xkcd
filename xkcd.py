@@ -81,8 +81,8 @@ def print_long_text(text):
             proc = Popen(less_cmd, stdin=PIPE)
         except OSError:
             return text
-        proc.communicate(text.encode())
-        return ""
+        out = proc.communicate(text.encode())[0]
+        return out if out is not None else ""
     else:
         return text
 
@@ -183,6 +183,8 @@ def parse_input(inp):
             pass
         else:
             output += "Unknown command\n"
+    if output == "\n":
+        return ""
     return output
 
 
@@ -589,7 +591,7 @@ def main():
         except (KeyboardInterrupt, EOFError):
             print()
             break
-        print(parse_input(inp))
+        sys.stdout.write(parse_input(inp))
 
     if os.path.exists(tmpimg_location):
         shutil.rmtree(tmpimg_location)
