@@ -63,6 +63,7 @@ titles_location = "/usr/share/xkcd/titles.txt"  # Location to store titles
 transcripts_location = "/usr/share/xkcd/transcripts.txt"  # ^ for transcripts
 # Disable if you are using windows / don't know what is the program "less"
 use_less = True
+less_cmd = "/bin/less"
 
 # URLs
 
@@ -77,11 +78,11 @@ explainxkcd_url = "http://www.explainxkcd.com/%s"
 def print_long_text(text):
     if use_less:
         try:
-            proc = Popen("less", shell=True, stdin=PIPE)
+            proc = Popen(less_cmd, stdin=PIPE)
         except OSError:
             return text
-        proc.communicate(text.encode())
-        return ""
+        out = proc.communicate(text.encode())[0]
+        return out if out is not None else ""
     else:
         return text
 
@@ -127,6 +128,7 @@ def get_img(num):
         fd = open(tmpimg_location + "%s.png" % sel_comic, 'wb')
         fd.write(img_data)
         fd.close()
+        return True
 
 
 def get_offline_metadata():
@@ -181,6 +183,8 @@ def parse_input(inp):
             pass
         else:
             output += "Unknown command\n"
+    if output == "\n":
+        return ""
     return output
 
 
@@ -191,9 +195,9 @@ def get_printable_data(api_data):
         transcript = data['transcript']
     except (ValueError, KeyError):
         return "Something went wrong when decoding JSON\nraw text:\n%s" % \
-            api_data
+            api_data.decode('utf-8')
     if len(transcript) == 0:
-        transcript = "No transcript avaliable yet.\n\nTitle text: \"" + \
+        transcript = "No transcript available yet.\n\nTitle text: \"" + \
             data['alt'] + "\""
     output = data['title'] + "\nRelease date: %s-%s-%s" % release_date + \
         "\n" + transcript
@@ -239,13 +243,13 @@ def update_search_db():
         title_file = open(titles_location, 'a')
         transcripts_file = open(transcripts_location, 'a')
         for x in range(last_comic + 1, cur_max_comic + 1):
-            with urllib.urlopen(api_url % x) as response:
-                resp_json = json.loads(response.read())
-                title = repr(resp_json['title'])
-                number = resp_json['num']
-                transcript = repr(resp_json['transcript'])
-                title_file.write("%s:%s\n" % (number, title))
-                transcripts_file.write("%s:%s\n" % (number, transcript))
+            response = get_url(api_url % x)
+            resp_json = json.loads(response.decode('utf-8'))
+            title = repr(resp_json['title'])
+            number = resp_json['num']
+            transcript = repr(resp_json['transcript'])
+            title_file.write("%s:%s\n" % (number, title))
+            transcripts_file.write("%s:%s\n" % (number, transcript))
         title_file.close()
         transcripts_file.close()
     return output
@@ -587,7 +591,7 @@ def main():
         except (KeyboardInterrupt, EOFError):
             print()
             break
-        print(parse_input(inp))
+        sys.stdout.write(parse_input(inp))
 
     if os.path.exists(tmpimg_location):
         shutil.rmtree(tmpimg_location)
