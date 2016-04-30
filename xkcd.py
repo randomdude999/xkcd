@@ -46,6 +46,11 @@ except ImportError:
     # Well, you don't *have* to have readline, but it definitely helps!
     readline = None
 
+if sys.platform.startswith("linux"):
+    use_less = True
+else:
+    use_less = False
+
 version = "v0.3"
 
 #  #############################
@@ -55,20 +60,20 @@ version = "v0.3"
 # Main config
 
 prompt = "xkcd [%s]> "  # the %s is current comic number
+title = "xkcd [%s]"  # Title shown in command prompt
+icon_name = "xkcd"  # Shown in taskbar
 display_cmd = "display %s"  # command used to display images, %s is file path
 html_renderer = ("/usr/bin/w3m", "-dump", "-T", "text/html", "-O", "utf-8")
 tmpimg_location = "/tmp/xkcd/"  # remember trailing (back)slash
 save_location = os.getenv("HOME") + "/Pictures/"  # Default save location
 titles_location = "/usr/share/xkcd/titles.txt"  # Location to store titles
 transcripts_location = "/usr/share/xkcd/transcripts.txt"  # ^ for transcripts
-# Disable if you are using windows / don't know what is the program "less"
-use_less = True
-less_cmd = "/bin/less"
+less_cmd = "/bin/less"  # If using linux, where to find 'less'
 
 # URLs
 
 api_url = "http://xkcd.com/%s/info.0.json"  # Comic metadata URL (%s = comic #)
-explainxkcd_url = "http://www.explainxkcd.com/%s"
+explainxkcd_url = "http://www.explainxkcd.com/%s"  # Explain xkcd url
 
 
 #  #############################
@@ -580,13 +585,14 @@ commands_help['exit'] = commands_help['quit']
 #  #############################
 
 def main():
-    sys.stdout.write("\x1b]0;xkcd\x07")
+    sys.stdout.write("\x1b]0;"+icon_name+"\x07")
     print("A command line xkcd client (%s)" % version)
     print("By randomdude999")
     print("Type `help' or `license' for more info")
 
     while isrunning:
         try:
+            sys.stdout.write("\x1b]2;"+(title % sel_comic)+"\x07")
             inp = input(prompt % sel_comic)
         except (KeyboardInterrupt, EOFError):
             print()
