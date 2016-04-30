@@ -66,8 +66,8 @@ display_cmd = "display %s"  # command used to display images, %s is file path
 html_renderer = ("/usr/bin/w3m", "-dump", "-T", "text/html", "-O", "utf-8")
 tmpimg_location = "/tmp/xkcd/"  # remember trailing (back)slash
 save_location = os.getenv("HOME") + "/Pictures/"  # Default save location
-titles_location = "/usr/share/xkcd/titles.txt"  # Location to store titles
-transcripts_location = "/usr/share/xkcd/transcripts.txt"  # ^ for transcripts
+titles_location = "/usr/local/share/xkcd/titles.txt"  # Location to store titles
+transcripts_location = "/usr/local/share/xkcd/transcripts.txt"  # ^ for transcripts
 less_cmd = "/bin/less"  # If using linux, where to find 'less'
 
 # URLs

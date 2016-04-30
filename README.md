@@ -11,13 +11,25 @@ If you see a green "build | passing" near the top, that means the program is ful
 
 ### Platform-independent
 
-Download / `git clone` the repository. If you are not a developer, you can delete all files except `xkcd.py` and `search.zip`.
+Download / `git clone` the repository. If you are not a developer, you can delete all files except `xkcd.py`, `Makefile` and `search.zip`.
 
 ### Linux
 
 (Should work in OSX too)
-
 Open a terminal. Then make sure you are in the directory you downloaded.  
+
+#### Easy (with `make`)
+
+Type:
+
+    sudo make install
+
+If you also want searching:
+
+    sudo make search
+
+#### Manual
+
 Type:
 
     sudo cp xkcd.py /usr/local/bin/xkcd
@@ -27,8 +39,8 @@ This will copy `xkcd.py` to `/usr/local/bin` under the name `xkcd`.
 If you also want searching:
 
     unzip search.zip
-    sudo mkdir -p /usr/share/xkcd
-    sudo cp titles.txt transcripts.txt /usr/share/xkcd
+    sudo mkdir -p /usr/local/share/xkcd
+    sudo cp titles.txt transcripts.txt /usr/local/share/xkcd
 
 Now type `xkcd` to test if it worked.
 
