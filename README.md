@@ -16,6 +16,7 @@ Download / `git clone` the repository. If you are not a developer, you can delet
 ### Linux
 
 (Should work in OSX too)
+
 Open a terminal. Then make sure you are in the directory you downloaded.  
 
 #### Easy (with `make`)
