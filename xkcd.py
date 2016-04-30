@@ -51,7 +51,7 @@ if sys.platform.startswith("linux"):
 else:
     use_less = False
 
-version = "v0.3"
+version = "v0.3.2"
 
 #  #############################
 #  # Configuration             #
