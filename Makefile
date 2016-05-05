@@ -6,10 +6,10 @@ FILEDIR=$(PREFIX)/share/$(PROGNAME)
 
 search:
 	mkdir -p $(FILEDIR)
-	unzip search.zip -d $(FILEDIR)
+	unzip -q search.zip -d $(FILEDIR)
 
 install:
-	install xkcd.py $(INSTALL)
+	install -D xkcd.py $(INSTALL)
 
 all: search install
 
