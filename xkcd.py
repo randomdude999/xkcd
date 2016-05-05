@@ -83,11 +83,11 @@ explainxkcd_url = "http://www.explainxkcd.com/%s"  # Explain xkcd url
 def print_long_text(text):
     if use_less:
         try:
-            proc = Popen(less_cmd, stdin=PIPE)
+            proc = Popen(less_cmd, stdin=PIPE, stdout=PIPE)
         except OSError:
             return text
         out = proc.communicate(text.encode())[0]
-        return out if out is not None else ""
+        return out.decode("utf-8") if out is not None else ""
     else:
         return text
 
@@ -130,7 +130,7 @@ def get_img(num):
         img_data = result[0]
         if not os.path.isdir(tmpimg_location):
             os.mkdir(tmpimg_location)
-        fd = open(tmpimg_location + "%s.png" % sel_comic, 'wb')
+        fd = open(tmpimg_location + "%s.png" % num, 'wb')
         fd.write(img_data)
         fd.close()
         return True
