@@ -91,7 +91,7 @@ class TestInternetRequiringCommands(unittest.TestCase):
                          "Renderer not found")
     def test_command_explain_with_arg(self):
         xkcd.use_less = False
-        result = xkcd.command_explain(1000)
+        result = xkcd.command_explain("1000")
         excepted_result = comic_1000_transcript
         self.assertEqual(result, excepted_result)
 
@@ -167,6 +167,12 @@ class TestInternetRequiringCommands(unittest.TestCase):
         output = xkcd.command_update()
         expected_output = "No new comics.\n"
         self.assertEqual(output, expected_output)
+
+    def test_tmpfile_existing_comic(self):
+        xkcd.create_tmpfile_if_not_exist(1)
+        out = xkcd.create_tmpfile_if_not_exist(1)
+        expected_out = ""
+        self.assertEqual(out, expected_out)
 
 
 class TestCommandNext(unittest.TestCase):
@@ -520,6 +526,13 @@ class TestMiscFunctions(unittest.TestCase):
         expected_output = "Test"
         self.assertEqual(output, expected_output)
         xkcd.use_less = False
+
+    def test_print_long_text_actually_working(self):
+        xkcd.use_less = True
+        xkcd.less_cmd = "/bin/cat"
+        out = xkcd.print_long_text("HELLO")
+        expected_out = "HELLO"
+        self.assertEqual(out, expected_out)
 
 
 if __name__ == '__main__':
