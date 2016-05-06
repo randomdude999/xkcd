@@ -7,7 +7,7 @@ A command line xkcd client.
 
 ### Which Python?
 
-If you see a green "build | passing" near the top, that means the program is fully working in Python 2.7, 3.3, 3.4 and 3.5. If it's a red "build | failing", click it for more information.
+If you see a green "build | passing" near the top, that means the program is fully working in Python 2.7, 3.3, 3.4, 3.5, PyPy and PyPy3. If it's a red "build | failing", click it for more information.
 
 ### Platform-independent
 
